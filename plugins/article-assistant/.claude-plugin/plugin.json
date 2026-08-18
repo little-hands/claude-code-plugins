@@ -1,0 +1,10 @@
+{
+  "name": "article-assistant",
+  "description": "Interactive article-writing editor that guides you from a vague idea to a finished draft: deep-dives your motivation, brainstorms angles, clarifies the article's aim, and generates sections with feedback loops",
+  "author": {
+    "name": "little-hands",
+    "url": "https://github.com/little-hands"
+  },
+  "repository": "https://github.com/little-hands/claude-code-plugins",
+  "license": "MIT"
+}

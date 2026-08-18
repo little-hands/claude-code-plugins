@@ -1,0 +1,24 @@
+{
+  "name": "little-hands",
+  "owner": {
+    "name": "little-hands",
+    "url": "https://github.com/little-hands"
+  },
+  "metadata": {
+    "description": "little-hands が作る Claude Code プラグイン集"
+  },
+  "plugins": [
+    {
+      "name": "article-assistant",
+      "description": "記事執筆を伴走サポートする編集者。アイデアの深掘り→切り口ブレスト→狙いの整理→構成→セクション生成まで対話でガイド",
+      "source": "./plugins/article-assistant",
+      "license": "MIT",
+      "keywords": [
+        "writing",
+        "article",
+        "blog",
+        "editor"
+      ]
+    }
+  ]
+}

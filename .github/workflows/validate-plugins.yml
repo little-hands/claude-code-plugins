@@ -1,0 +1,26 @@
+name: Validate Plugins
+on:
+  # main への直 push が主な運用のため push でも走らせる。PR を切った場合にも走るよう両方定義する
+  push:
+    branches: [main]
+    paths: &paths
+      - 'plugins/**'
+      - '.claude-plugin/**'
+      - 'scripts/**'
+      - 'README.md'
+  pull_request:
+    paths: *paths
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Run plugin validation
+        run: bash scripts/validate-plugins.sh

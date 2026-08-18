@@ -1,0 +1,7 @@
+.DS_Store
+.idea/
+.claude/settings.local.json
+.claude/worktrees/
+
+# 公開しないローカル作業メモ
+_local/
