@@ -7,7 +7,7 @@ little-hands が作る Claude Code プラグイン集。
 | プラグイン | 説明 |
 |------------|------|
 | [article-assistant](./plugins/article-assistant/) | 記事執筆を伴走サポートする編集者。アイデアの深掘り→切り口ブレスト→狙いの整理→構成→セクション生成まで対話でガイド |
-| [seque-example](./plugins/seque-example/) | 処理の流れを「シーケンス図（mermaid）＋矢印ごとの実値」で説明するスタンドアロン HTML を生成。設計の説明・仕様の共有・実装の読み解き結果を、解釈の余地なく共有したい場面で使う |
+| [modeling](./plugins/modeling/) | システムの振る舞いを解釈の余地なく説明するためのモデリング補助。`seq-values` スキルで「シーケンス図（mermaid）＋矢印ごとの実値」のスタンドアロン HTML を生成 |
 
 ## インストール
 

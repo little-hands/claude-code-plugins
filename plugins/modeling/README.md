@@ -1,8 +1,12 @@
-# seque-example
+# modeling
 
-処理の流れを「シーケンス図＋矢印ごとの実値」で説明する HTML を生成するプラグイン。
+システムの振る舞いを、解釈の余地なく説明するためのモデリング補助プラグイン。
 
 ## 機能
+
+現在は `seq-values` スキルを収録しています。
+
+### seq-values — シーケンス図＋矢印ごとの実値
 
 普通のシーケンス図は「API を呼ぶ」という形までしか語らず、戻り値のどこを使うか・丸めをどちらに倒すかは読み手の解釈に委ねられます。このスキルは、**図（流れ）と実値（中身）を別セクションに分け、矢印番号で対応させる**ことで、その余地を無くします。
 
@@ -16,10 +20,6 @@
 
 出力は `/tmp` 以下のスタンドアロン HTML 1 枚（外部 CDN は mermaid の描画にのみ使用）で、生成後にブラウザで自動的に開きます。
 
-**含まれるスキル:**
-
-- `seque-example`: シーケンス図＋実値 HTML の生成
-
 ## 前提条件
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI が利用可能であること
@@ -30,7 +30,7 @@
 
 ```
 /plugin marketplace add little-hands/claude-code-plugins
-/plugin install seque-example@little-hands
+/plugin install modeling@little-hands
 ```
 
 > **プラグインが見つからない場合:** マーケットプレイスが登録済みでもプラグインが見つからない場合は、マーケットプレイスの更新が必要です。
@@ -40,7 +40,7 @@
 > 3. **little-hands** を選択
 > 4. **Update** を選択
 >
-> 更新後、再度 `/plugin install seque-example@little-hands` を実行してください。
+> 更新後、再度 `/plugin install modeling@little-hands` を実行してください。
 
 ### 自動更新の設定（推奨）
 
@@ -53,9 +53,9 @@
 
 ## 使い方
 
-会話の文脈から自動で発動します（「シーケンス図でHTML作って」「処理の流れを実値つきで説明して」「フローをHTMLにまとめて」などのフレーズ、または `seque-example` という語）。明示的に呼びたい場合は `/seque-example` を使ってください。
+会話の文脈から自動で発動します（「シーケンス図でHTML作って」「処理の流れを実値つきで説明して」「フローをHTMLにまとめて」などのフレーズ、または `seq-values` という語）。明示的に呼びたい場合は `/seq-values` を使ってください。
 
-同名の他のコマンドがある場合は、名前空間付きの `/seque-example:seque-example` で呼び出してください。
+同名の他のコマンドがある場合は、名前空間付きの `/modeling:seq-values` で呼び出してください。
 
 **使わない場面:**
 
@@ -65,7 +65,7 @@
 
 ## スキル
 
-- [seque-example/SKILL.md](./skills/seque-example/SKILL.md)
+- [seq-values/SKILL.md](./skills/seq-values/SKILL.md)
 
 ## ライセンス
 

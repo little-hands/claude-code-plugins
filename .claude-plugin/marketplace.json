@@ -21,11 +21,12 @@
       ]
     },
     {
-      "name": "seque-example",
-      "description": "処理の流れを「シーケンス図（mermaid）＋矢印ごとの実値」で説明するスタンドアロン HTML を生成。設計の説明・仕様の共有・実装の読み解き結果を、解釈の余地なく共有したい場面で使う",
-      "source": "./plugins/seque-example",
+      "name": "modeling",
+      "description": "システムの振る舞いを解釈の余地なく説明するためのモデリング補助。seq-values スキルで「シーケンス図（mermaid）＋矢印ごとの実値」のスタンドアロン HTML を生成する",
+      "source": "./plugins/modeling",
       "license": "MIT",
       "keywords": [
+        "modeling",
         "diagram",
         "mermaid",
         "sequence-diagram",
