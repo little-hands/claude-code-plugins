@@ -19,6 +19,19 @@
         "blog",
         "editor"
       ]
+    },
+    {
+      "name": "seque-example",
+      "description": "処理の流れを「シーケンス図（mermaid）＋矢印ごとの実値」で説明するスタンドアロン HTML を生成。設計の説明・仕様の共有・実装の読み解き結果を、解釈の余地なく共有したい場面で使う",
+      "source": "./plugins/seque-example",
+      "license": "MIT",
+      "keywords": [
+        "diagram",
+        "mermaid",
+        "sequence-diagram",
+        "documentation",
+        "design"
+      ]
     }
   ]
 }

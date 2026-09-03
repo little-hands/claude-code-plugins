@@ -1,0 +1,10 @@
+{
+  "name": "seque-example",
+  "description": "Generates a standalone HTML page pairing a Mermaid sequence diagram (shape only) with a concrete real-value walkthrough of every arrow, so implementation details like which field is used, which way rounding goes, or how an error branch behaves are shared without room for interpretation.",
+  "author": {
+    "name": "little-hands",
+    "url": "https://github.com/little-hands"
+  },
+  "repository": "https://github.com/little-hands/claude-code-plugins",
+  "license": "MIT"
+}
