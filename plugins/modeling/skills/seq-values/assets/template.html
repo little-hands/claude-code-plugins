@@ -285,6 +285,64 @@
     line-height: 1.7;
     color: var(--ink-soft);
   }
+
+  /* ---- 左に図・右に実値（広い画面だけ） ---- */
+  /* 狭い画面では縦積みに戻す。図と実値を横に並べられる幅が無いのに
+     2 カラムにすると、どちらも読めない幅になる */
+  .split { display: flex; flex-direction: column; gap: 3.25rem; }
+  @media (min-width: 80rem) {
+    /* 2 カラムのときだけ本文を広げる。1 カラムのままこの幅にすると
+       プローズが 1 行 200 字近くなって読めない */
+    main.wrap { width: min(100% - 3rem, 110rem); }
+    .split {
+      display: grid;
+      grid-template-columns: minmax(28rem, 42%) 1fr;
+      gap: 2.5rem;
+      align-items: start;
+    }
+    .pane-diagram {
+      position: sticky;
+      top: 1rem;
+      max-height: calc(100vh - 2rem);
+      display: flex; flex-direction: column;
+    }
+    /* 見出し・説明・ズームバーは固定。スクロールするのは図の枠だけ */
+    .pane-diagram .diagram { overflow: auto; flex: 1 1 auto; min-height: 0; }
+    /* 図は縮めずに自然幅で描き、左カラムの中で左右にスクロールさせる */
+    .pane-diagram .diagram svg { max-width: none !important; }
+  }
+
+  /* ---- 図の拡大（縮小して置くぶん、拡大手段を必ず添える） ---- */
+  .diagram { cursor: zoom-in; }
+  .zoombar { display: flex; gap: 0.4rem; align-items: center; font: 500 0.8rem var(--mono); }
+  .zoombar button {
+    font: inherit;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .zoombar button:hover { background: var(--accent-dim); }
+  /* ダイアログの中も図と同じ理由で固定配色（テーマ変数を使わない） */
+  dialog.zoom {
+    width: min(96vw, 120rem);
+    max-width: none;
+    max-height: 96vh;
+    padding: 1rem;
+    border: 1px solid #d8dee7;
+    border-radius: 2px;
+    background: #ffffff;
+    overflow: auto;
+  }
+  dialog.zoom::backdrop { background: rgba(0,0,0,0.55); }
+  dialog.zoom svg { width: 100%; height: auto; }
+  dialog.zoom .close {
+    position: sticky; top: 0; float: right;
+    font: 700 0.85rem var(--mono); color: #143d73;
+    background: #e3eaf5; border: 0; border-radius: 2px; padding: 0.3rem 0.7rem; cursor: pointer;
+  }
 </style>
 </head>
 <body>
@@ -328,9 +386,12 @@
     </div>
   </section>
 
-  <section>
+  <div class="split">
+
+  <section class="pane-diagram">
     <h2><span class="num">1</span>シーケンス — 何がどの順で通るか</h2>
     <p>図には数値を入れない。<strong>流れと分岐だけ</strong>を持たせ、値は次の節に集める。両方に数字を置くと、片方だけ直したときに食い違う。</p>
+    <div class="zoombar"><button type="button" data-zoom="-">🔍−</button><span id="zoom-pct">50%</span><button type="button" data-zoom="+">🔍+</button><button type="button" data-zoom="0">リセット</button></div>
     <div class="diagram">
       <pre class="mermaid">
 sequenceDiagram
@@ -343,7 +404,7 @@ sequenceDiagram
     </div>
   </section>
 
-  <section>
+  <section class="pane-values">
     <h2><span class="num">2</span>矢印ごとの実値 — {{CONCRETE_CASE}}</h2>
     <p>図の矢印を上から順に、実際の値で追う。<strong>図で形を掴み、ここで中身を掴む。</strong></p>
 
@@ -370,7 +431,26 @@ sequenceDiagram
     </div>
   </section>
 
+  </div>
+
 </main>
+
+<dialog class="zoom" id="zoom"><button class="close" type="button" onclick="document.getElementById('zoom').close()">閉じる (Esc)</button><div id="zoom-body"></div></dialog>
+
+<script>
+  // 図のどこかをクリックしたら原寸で開く。左カラムは縮めて置くので、
+  // 「読めないなら開く」の逃げ道を必ず用意しておく
+  document.addEventListener('click', function (ev) {
+    var d = ev.target.closest('.diagram');
+    if (!d) return;
+    var svg = d.querySelector('pre.mermaid > svg') || d.querySelector('svg');
+    if (!svg) return;
+    var body = document.getElementById('zoom-body');
+    body.innerHTML = '';
+    body.appendChild(svg.cloneNode(true));
+    document.getElementById('zoom').showModal();
+  });
+</script>
 
 <footer class="wrap">{{FOOTER}}</footer>
 
@@ -389,7 +469,8 @@ sequenceDiagram
     // .diagram の背景も同じ理由で白に固定してあるので、常にこの
     // ライト基調パレットで正しく読める。
     mermaid.initialize({
-      startOnLoad: true,
+      // 描画後に倍率を当てるため自動描画は使わず、下で run() を呼ぶ
+      startOnLoad: false,
       securityLevel: 'strict',
       theme: 'base',
       fontFamily: '"Noto Sans JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif',
@@ -418,6 +499,28 @@ sequenceDiagram
         sequenceNumberColor: '#ffffff'
       }
     });
+
+    // 左カラムに収めるため既定は 50%。viewBox の実寸に対して倍率を掛ける
+    var scale = 0.5;
+    function applyScale() {
+      document.querySelectorAll(".pane-diagram .diagram > pre > svg, .pane-diagram .diagram > svg").forEach(function (svg) {
+        var vb = svg.viewBox && svg.viewBox.baseVal;
+        if (vb && vb.width) {
+          svg.style.width = Math.round(vb.width * scale) + "px";
+          svg.setAttribute("width", Math.round(vb.width * scale));
+        }
+      });
+      var pct = document.getElementById("zoom-pct");
+      if (pct) pct.textContent = Math.round(scale * 100) + "%";
+    }
+    document.addEventListener("click", function (ev) {
+      var b = ev.target.closest("[data-zoom]");
+      if (!b) return;
+      var op = b.getAttribute("data-zoom");
+      scale = op === "+" ? Math.min(3, scale * 1.25) : op === "-" ? Math.max(0.25, scale / 1.25) : 0.5;
+      applyScale();
+    });
+    mermaid.run().then(applyScale);
   })();
 </script>
 
