@@ -291,14 +291,15 @@
      2 カラムにすると、どちらも読めない幅になる */
   .split { display: flex; flex-direction: column; gap: 3.25rem; }
   @media (min-width: 80rem) {
-    /* 2 カラムのときだけ本文を広げる。1 カラムのままこの幅にすると
-       プローズが 1 行 200 字近くなって読めない */
-    main.wrap { width: min(100% - 3rem, 110rem); }
     .split {
       display: grid;
       grid-template-columns: minmax(28rem, 42%) 1fr;
       gap: 2.5rem;
       align-items: start;
+      /* 広げるのはこのブロックだけ。header・0 節・footer は --wrap のまま
+         左端を揃える。散文まで 110rem で流すと 1 行 200 字近くなって読めない */
+      width: min(100vw - 3rem, 110rem);
+      margin-inline: calc((100% - min(100vw - 3rem, 110rem)) / 2);
     }
     .pane-diagram {
       position: sticky;

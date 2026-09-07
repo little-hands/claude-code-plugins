@@ -46,17 +46,20 @@ def check_html(text):
     print("unclosed=%s" % parser.stack)
     print("badges=%s" % badges)
     print("steps=%d (fail=%d)" % (len(steps), len(fails)))
-    return not parser.errors and not parser.stack
+    return (not parser.errors and not parser.stack), len(steps)
 
 
 def check_md(text):
     lines = text.splitlines()
     # 実値ブロックは h2 見出し「## N. 説明」。番号が矢印と対応する。
-    # 末尾が ⚠️ のものを失敗系として数える（md にはクラス属性が無いため、
-    # 見た目にも出る目印を構造の代わりに使う）
-    heads = [l for l in lines if re.match(r"^##\s+\S+\.\s", l)]
-    badges = [re.match(r"^##\s+(\S+)\.\s", l).group(1) for l in heads]
-    fails = [l for l in heads if l.rstrip().endswith("⚠️")]
+    # ドットの後のスペースは必須にしない（「## 1.説明」で無言の 0 件になるのを避ける）
+    HEAD = re.compile(r"^##\s+(\d[0-9a-z]*)\.")
+    heads = [l for l in lines if HEAD.match(l)]
+    badges = [HEAD.match(l).group(1) for l in heads]
+    # 失敗系は見出しの ⚠️ で数える（md にはクラス属性が無いため、
+    # 見た目にも出る目印を構造の代わりに使う）。
+    # U+FE0F（異体字セレクタ）の有無で取りこぼさないよう U+26A0 だけを見る
+    fails = [l for l in heads if "⚠" in l]
 
     # コードフェンスの閉じ忘れは md で最も壊れやすい。開始・終了の総数が偶数か見る
     fences = [l for l in lines if l.lstrip().startswith("```")]
@@ -67,7 +70,7 @@ def check_md(text):
     print("mermaid_block=%s" % has_mermaid)
     print("badges=%s" % badges)
     print("steps=%d (fail=%d)" % (len(heads), len(fails)))
-    return fence_ok and has_mermaid
+    return (fence_ok and has_mermaid), len(heads)
 
 
 def main(path):
@@ -76,11 +79,16 @@ def main(path):
     print("unreplaced=%d %s" % (len(unreplaced), sorted(set(unreplaced))))
 
     if path.lower().endswith(".md"):
-        body_ok = check_md(text)
+        body_ok, steps = check_md(text)
     else:
-        body_ok = check_html(text)
+        body_ok, steps = check_html(text)
 
-    ok = not unreplaced and body_ok
+    # 実値ブロックが 1 つも無い成果物はこのスキルの出力として成立しない。
+    # 記法の揺れで拾えていないだけの場合もここで気づける
+    if steps == 0:
+        print("no_steps=1  # 実値ブロックが 0 件。記法（html: .step / md: '## N.'）を確認する")
+
+    ok = not unreplaced and body_ok and steps > 0
     print("RESULT=%s" % ("ok" if ok else "NG"))
     return 0 if ok else 1
 
