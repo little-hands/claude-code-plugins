@@ -1,10 +1,25 @@
-# modeling
+# cozy-doc
 
-システムの振る舞いを、解釈の余地なく説明するためのモデリング補助プラグイン。
+読み手を迷わせず、くつろいで読める形にするプラグイン。
 
 ## 機能
 
-現在は `seq-values` スキルを収録しています。
+`diff-guide` と `seq-values` の 2 スキルを収録しています。どちらも、対象を**上から順に読めば理解できる形**のスタンドアロン HTML にする点は共通です。
+
+### diff-guide — 差分を読む順に並べた解説ドキュメント
+
+`git diff` は変更をパスのアルファベット順など機械の都合で並べますが、人が読みやすい順は依存の順（型 → それを使う側 → それを束ねる側）です。このスキルは、差分（未コミットの変更・ブランチ間・GitHub の PR）を**上から順に読めば理解できる形**にした、スタンドアロン HTML の解説ドキュメントを生成します。
+
+**守る原則は 4 つ:**
+
+1. 読む順は依存の順（`git diff` の出力順・パスのアルファベット順で並べない）
+2. diff は全文を貼らない。読みどころだけ抜き、落とした部分は「何を落としたか」を明示する
+3. 消えたもの・探しても無いものを先に断る
+4. 確かめた事実（テスト結果・リンタの結果など）だけを数字で置く。確かめていない項目は載せない
+
+対象は引数（未指定なら未コミットの変更、PR 番号 / URL なら GitHub の PR、`<base>...<head>` ならブランチ間）から判断します。既にレビュー結果があれば末尾の表に載せますが、このスキル自体はレビュー（欠陥探し）はしません。
+
+出力先の既定は `/tmp`（`/tmp` の中身は消えるため、あとから参照したいと言われたらリポジトリ内の置き場所を提案します）。置き場所を指示すればそこに書きます。
 
 ### seq-values — シーケンス図＋矢印ごとの実値
 
@@ -30,6 +45,7 @@
 ## 前提条件
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI が利用可能であること
+- diff-guide で GitHub の PR を対象にする場合は `gh` CLI
 
 ## インストール
 
@@ -37,7 +53,7 @@
 
 ```
 /plugin marketplace add little-hands/claude-code-plugins
-/plugin install modeling@little-hands
+/plugin install cozy-doc@little-hands
 ```
 
 > **プラグインが見つからない場合:** マーケットプレイスが登録済みでもプラグインが見つからない場合は、マーケットプレイスの更新が必要です。
@@ -47,7 +63,7 @@
 > 3. **little-hands** を選択
 > 4. **Update** を選択
 >
-> 更新後、再度 `/plugin install modeling@little-hands` を実行してください。
+> 更新後、再度 `/plugin install cozy-doc@little-hands` を実行してください。
 
 ### 自動更新の設定（推奨）
 
@@ -60,16 +76,26 @@
 
 ## 使い方
 
-会話の文脈から自動で発動します（「シーケンス図でHTML作って」「処理の流れを実値つきで説明して」「フローをHTMLにまとめて」などのフレーズ、または `seq-values` という語）。明示的に呼びたい場合は `/seq-values` を使ってください。
+会話の文脈から自動で発動します。明示的に呼びたい場合はそれぞれのコマンドを使ってください。
 
 ```
-/seq-values          # HTML（既定）
-/seq-values md       # 貼り込み用の Markdown
+/diff-guide                    # 未コミットの変更
+/diff-guide 512                # PR #512
+/diff-guide main...feature/x   # ブランチ間（3点）
+
+/seq-values                    # HTML（既定）
+/seq-values md                 # 貼り込み用の Markdown
 ```
 
-同名の他のコマンドがある場合は、名前空間付きの `/modeling:seq-values` で呼び出してください。
+同名の他のコマンドがある場合は、名前空間付きの `/cozy-doc:diff-guide` / `/cozy-doc:seq-values` で呼び出してください。
 
-**使わない場面:**
+**diff-guide を使わない場面:**
+
+- 差分そのものが見たいだけの時（`git diff` / `gh pr diff` をそのまま出せば足りる）
+- レビュー（欠陥探し）が目的の時（`/code-review` か `/review:phase` へ）
+- 変更が 1 ファイル・数行の時（本文に diff を貼って説明すれば足りる）
+
+**seq-values を使わない場面:**
 
 - 図だけ欲しい時（mermaid のコードブロックだけで足りる）
 - `.drawio` ファイルが欲しい時
@@ -77,6 +103,7 @@
 
 ## スキル
 
+- [diff-guide/SKILL.md](./skills/diff-guide/SKILL.md)
 - [seq-values/SKILL.md](./skills/seq-values/SKILL.md)
 
 ## ライセンス

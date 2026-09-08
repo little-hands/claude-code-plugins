@@ -1,0 +1,10 @@
+{
+  "name": "cozy-doc",
+  "description": "Turns hard-to-follow material into something you can read top to bottom without ever wondering where to start. diff-guide reorders a diff (uncommitted changes, a branch comparison, or a GitHub PR) by reading dependency instead of file path, adds a one-line reason to read each file, and trims excerpts to just the parts that matter. seq-values pairs a Mermaid sequence diagram (shape only) with a concrete real-value walkthrough of every arrow, so implementation details are shared without room for interpretation. Both produce a standalone HTML page a reviewer or your future self can follow without guessing.",
+  "author": {
+    "name": "little-hands",
+    "url": "https://github.com/little-hands"
+  },
+  "repository": "https://github.com/little-hands/claude-code-plugins",
+  "license": "MIT"
+}

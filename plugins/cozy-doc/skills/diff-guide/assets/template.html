@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<style>
+  :root {
+    --paper: #f7f5f1;
+    --surface: #ffffff;
+    --ink: #1f2430;
+    --ink-soft: #565f73;
+    --ink-faint: #8890a0;
+    --line: #ddd8cd;
+    --accent: #2f5d8a;
+    --accent-soft: #e4edf5;
+    --add-bg: #e6f4e6;
+    --add-ink: #1f6b2f;
+    --del-bg: #fbe9e7;
+    --del-ink: #a03a2c;
+    --code-bg: #14171c;
+    --code-ink: #d8dde6;
+    --code-line: #262b34;
+    /* diff の中は常に暗い地。テーマで反転させない（反転させるとライトで 2.4:1 まで落ちる） */
+    --diff-add-bg: #16261a;
+    --diff-add-ink: #7fd18f;
+    --diff-del-bg: #2c1a17;
+    --diff-del-ink: #e0897c;
+    --diff-mod: #7fb0dd;
+    --diff-faint: #98a0b0;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Hiragino Mincho ProN", "Yu Mincho", serif;
+    --sans: -apple-system, "Hiragino Sans", "Yu Gothic", "Segoe UI", sans-serif;
+    --mono: "SF Mono", "Menlo", "Consolas", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #14171c;
+      --surface: #191d24;
+      --ink: #e8e6df;
+      --ink-soft: #9aa2b2;
+      --ink-faint: #6a7180;
+      --line: #2a2f38;
+      --accent: #7fb0dd;
+      --accent-soft: #1c2b3a;
+      --add-bg: #16261a;
+      --add-ink: #7fd18f;
+      --del-bg: #2c1a17;
+      --del-ink: #e0897c;
+      --code-bg: #0c0e12;
+      --code-ink: #d8dde6;
+      --code-line: #1f242c;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 16px;
+    line-height: 1.75;
+  }
+  .wrap { max-width: 46rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
+  header.top { max-width: 46rem; margin: 0 auto; padding: 0 1.5rem; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 0.6rem;
+  }
+  h1 {
+    font-family: var(--sans); font-weight: 700; font-size: 2rem;
+    text-wrap: balance; margin: 0 0 0.5rem; color: var(--ink);
+  }
+  .lede { color: var(--ink-soft); font-size: 1.05rem; max-width: 40rem; margin: 0 0 1rem; }
+  .status-row {
+    display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem; font-family: var(--mono);
+    font-size: 0.78rem; color: var(--ink-soft); border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line); padding: 0.8rem 0; margin: 1.4rem 0 0;
+  }
+  .status-row b { color: var(--ink); font-weight: 600; }
+  .status-row .ok { color: var(--add-ink); }
+  .status-row .ng { color: var(--del-ink); }
+
+  nav.toc {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 3px;
+    padding: 1.1rem 1.3rem; margin: 2.2rem 0 0; font-family: var(--sans);
+  }
+  nav.toc p { margin: 0 0 0.6rem; font-size: 0.82rem; color: var(--ink-soft); }
+  nav.toc ol { margin: 0; padding-left: 1.3rem; font-size: 0.92rem; }
+  nav.toc li { margin: 0.2rem 0; }
+  nav.toc a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line); }
+  nav.toc a:hover { border-color: var(--accent); color: var(--accent); }
+  nav.toc code { font-size: 0.85em; }
+
+  section.step { margin-top: 3.6rem; scroll-margin-top: 1.5rem; }
+  section.step .num {
+    font-family: var(--mono); font-size: 0.78rem; color: var(--accent); letter-spacing: 0.08em;
+  }
+  h2 {
+    font-family: var(--sans); font-size: 1.35rem; font-weight: 700; text-wrap: balance;
+    margin: 0.2rem 0 0.2rem; display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap;
+  }
+  h2 code {
+    font-family: var(--mono); font-size: 0.72em; font-weight: 500; color: var(--ink-soft);
+    background: var(--accent-soft); padding: 0.12em 0.5em; border-radius: 2px;
+  }
+  .role { font-size: 0.85rem; color: var(--ink-soft); font-style: italic; margin: 0 0 1rem; }
+  p { margin: 0 0 1rem; }
+  strong { color: var(--ink); }
+  code { font-family: var(--mono); font-size: 0.88em; background: var(--accent-soft); padding: 0.1em 0.35em; border-radius: 2px; }
+
+  .diff {
+    background: var(--code-bg); color: var(--code-ink); border-radius: 4px;
+    overflow-x: auto; margin: 1.1rem 0 1.4rem; font-family: var(--mono);
+    font-size: 0.8rem; line-height: 1.65; border: 1px solid var(--code-line);
+  }
+  .diff .filebar {
+    display: flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.9rem;
+    border-bottom: 1px solid var(--code-line); color: var(--diff-faint);
+    font-size: 0.74rem; letter-spacing: 0.02em;
+  }
+  .diff .filebar .new { color: var(--diff-add-ink); font-weight: 600; }
+  .diff .filebar .mod { color: var(--diff-mod); font-weight: 600; }
+  .diff .filebar .gone { color: var(--diff-del-ink); font-weight: 600; }
+  /* 連続する行は 1 つの .lines にまとめる（pre は使わない — 中に div を置くと HTML が不正になり、
+     white-space: pre のせいで行の間に空行が出る） */
+  .diff .lines { padding: 0.6rem 0; }
+  .diff .line { display: grid; grid-template-columns: calc(4ch + 0.9rem) 1fr; padding: 0 0.9rem; }
+  .diff .line.add { background: var(--diff-add-bg); }
+  .diff .line.del { background: var(--diff-del-bg); }
+  .diff .ln { color: var(--diff-faint); text-align: right; padding-right: 0.9rem; user-select: none; }
+  .diff .add .ln { color: var(--diff-add-ink); }
+  .diff .del .ln { color: var(--diff-del-ink); }
+  .diff .txt { white-space: pre-wrap; word-break: break-word; }
+  .diff .add .txt::before { content: "+ "; color: var(--diff-add-ink); }
+  .diff .del .txt::before { content: "- "; color: var(--diff-del-ink); }
+  .diff .snip { color: var(--diff-faint); padding: 0.3rem 0.9rem; font-size: 0.74rem; }
+
+  .callout {
+    border-left: 3px solid var(--accent); background: var(--accent-soft);
+    padding: 0.85rem 1.1rem; border-radius: 0 3px 3px 0; margin: 1.1rem 0; font-size: 0.92rem;
+  }
+  .callout.watch { border-left-color: var(--del-ink); background: color-mix(in srgb, var(--del-bg) 70%, transparent); }
+  .callout p:last-child { margin-bottom: 0; }
+
+  table.review {
+    width: 100%; border-collapse: collapse; font-size: 0.86rem; margin: 1rem 0 1.6rem; font-family: var(--sans);
+  }
+  table.review th, table.review td {
+    text-align: left; padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--line); vertical-align: top;
+  }
+  table.review th { color: var(--ink-soft); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .sev { font-family: var(--mono); font-size: 0.72rem; font-weight: 700; padding: 0.1em 0.5em; border-radius: 2px; white-space: nowrap; }
+  .sev.must { background: var(--del-bg); color: var(--del-ink); }
+  .sev.should { background: var(--accent-soft); color: var(--accent); }
+  .sev.consider { background: var(--surface); color: var(--ink-soft); border: 1px solid var(--line); }
+  .sev.done { background: var(--add-bg); color: var(--add-ink); }
+  tr.done td { color: var(--ink-soft); }
+  tr.done td:not(:first-child) { text-decoration: line-through; text-decoration-color: var(--ink-faint); }
+
+  /* 長いパス・ファイル名で横スクロールさせない */
+  h2 code, table.review code, nav.toc code { overflow-wrap: anywhere; }
+  .callout code { background: var(--surface); }
+
+  footer.end {
+    margin-top: 4rem; padding-top: 1.6rem; border-top: 1px solid var(--line);
+    font-size: 0.82rem; color: var(--ink-soft); font-family: var(--sans);
+  }
+
+  @media (max-width: 40rem) {
+    .wrap, header.top { padding-left: 1.1rem; padding-right: 1.1rem; }
+    h1 { font-size: 1.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <p class="eyebrow">{{EYEBROW}}</p>
+</header>
+
+<div class="wrap">
+
+  <h1>{{TITLE}}</h1>
+  <p class="lede">{{LEDE}}</p>
+
+  <!-- 機械で確かめた事実だけ。数字を書く。確かめていない項目は行ごと消す -->
+  <div class="status-row">
+    <span>{{STATUS_LABEL_1}}: <b class="ok">{{STATUS_VALUE_1}}</b></span>
+    <span>{{STATUS_LABEL_2}}: <b>{{STATUS_VALUE_2}}</b></span>
+  </div>
+
+  <nav class="toc">
+    <p>読む順（{{TOC_ORDER_REASON}}）</p>
+    <ol>
+      <li><a href="#{{ANCHOR_1}}"><code>{{FILE_1}}</code></a> — {{TOC_HINT_1}}</li>
+    </ol>
+  </nav>
+
+  <!-- ここから .step を、読ませるファイルの数だけ複製する -->
+  <section class="step" id="{{ANCHOR_1}}">
+    <p class="num">1 / {{TOTAL}} — {{CHANGE_KIND}}</p>
+    <h2>{{FILE_1}} <code>{{DIR_1}}</code></h2>
+    <p class="role">{{WHY_READ_THIS_NOW}}</p>
+    <p>{{WHAT_TO_LOOK_AT}}</p>
+
+    <!-- filebar のラベルは 3 変種: 🆕 <span class="new">new file</span> ／
+         ✏️ <span class="mod">changed</span> ／ 🗑 <span class="gone">deleted</span> -->
+    <div class="diff">
+      <div class="filebar">🆕 <span class="new">new file</span> · {{FILE_1}} · {{LINE_COUNT}} 行</div>
+      <div class="lines">
+        <div class="line add"><span class="ln">{{LN}}</span><span class="txt">{{CODE_LINE}}</span></div>
+        <div class="line add"><span class="ln">{{LN}}</span><span class="txt"></span></div>
+      </div>
+      <div class="snip">⋯ {{WHAT_IS_OMITTED}} ⋯</div>
+      <div class="lines">
+        <div class="line del"><span class="ln">{{LN}}</span><span class="txt">{{REMOVED_LINE}}</span></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><strong>{{CALLOUT_HEAD}}</strong>: {{CALLOUT_BODY}}</p>
+    </div>
+  </section>
+
+  <!-- レビュー結果がある回だけ。無ければこの section を丸ごと削る -->
+  <section class="step" id="review">
+    <p class="num">{{REVIEW_SOURCE}}</p>
+    <h2>直すなら、ここから</h2>
+    <p class="role">{{REVIEW_ROLE}}</p>
+
+    <table class="review">
+      <thead><tr><th>深刻度</th><th>場所</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td><span class="sev must">MUST</span></td><td><code>{{WHERE}}</code></td><td>{{FINDING}}</td></tr>
+        <tr><td><span class="sev should">SHOULD</span></td><td><code>{{WHERE}}</code></td><td>{{FINDING}}</td></tr>
+        <tr class="done"><td><span class="sev done">対応済</span></td><td><code>{{WHERE}}</code></td><td>{{FINDING}}</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer class="end">
+    {{FOOTER}}
+  </footer>
+
+</div>
+</body>
+</html>
