@@ -7,6 +7,8 @@
 共通で unreplaced=0 と RESULT=ok を確認し、
 badges の並びを図の矢印番号と突き合わせる。
 steps の fail が 0 なら失敗系が入っていない（原則 3 違反）。
+src_missing が 0 でなければ、出どころ（ファイル・関数）を書いていない
+実値ブロックがある。
 """
 import re
 import sys
@@ -34,19 +36,36 @@ class TagBalance(HTMLParser):
             self.stack.pop()
 
 
+BADGE = re.compile(r'class="badge">(.*?)</div>', re.S)
+# 直後が < だと中身ではなく閉じタグなので、文字が来ることを要求する
+SRC_FILLED = re.compile(r'class="src"[^>]*>\s*[^<\s]')
+
+
 def check_html(text):
     parser = TagBalance()
     parser.feed(text)
-    badges = re.findall(r'class="badge">(.*?)</div>', text, re.S)
+
+    badges = BADGE.findall(text)
     # .steps コンテナを数えないよう、step の直後で区切る
     steps = re.findall(r'class="step(?:\s+[^"]*)?"', text)
     fails = [s for s in steps if "is-fail" in s]
+
+    # 出どころ（p.src）は全 .step に要る。欠けている矢印番号まで出す
+    # （件数だけだと、直す側がもう一度探すことになる）
+    blocks = re.split(r'<[a-zA-Z][\w-]*\s+class="step(?:\s+[^"]*)?"', text)[1:]
+    missing = [
+        (BADGE.search(b).group(1).strip() if BADGE.search(b) else "?")
+        for b in blocks
+        if not SRC_FILLED.search(b)
+    ]
 
     print("tag_errors=%d %s" % (len(parser.errors), parser.errors[:5]))
     print("unclosed=%s" % parser.stack)
     print("badges=%s" % badges)
     print("steps=%d (fail=%d)" % (len(steps), len(fails)))
-    return (not parser.errors and not parser.stack), len(steps)
+    print("src_missing=%d %s" % (len(missing), missing))
+
+    return (not parser.errors and not parser.stack and not missing), len(steps)
 
 
 def check_md(text):
@@ -66,11 +85,26 @@ def check_md(text):
     fence_ok = len(fences) % 2 == 0
     has_mermaid = any(l.lstrip().startswith("```mermaid") for l in lines)
 
+    # 出どころは見出しの次の非空行。md にはクラス属性が無いので、
+    # インラインコードで始まるかどうかを目印にする。
+    # コードフェンス（```）も ` で始まるため、先に弾く
+    # （弾かないと「見出しの直後が実値のフェンス」を出どころと誤認する）
+    missing = []
+    for i, line in enumerate(lines):
+        m = HEAD.match(line)
+        if not m:
+            continue
+        following = (l.strip() for l in lines[i + 1:])
+        first = next((l for l in following if l), "")
+        if first.startswith("```") or not first.startswith("`"):
+            missing.append(m.group(1))
+
     print("fences=%d (balanced=%s)" % (len(fences), fence_ok))
     print("mermaid_block=%s" % has_mermaid)
     print("badges=%s" % badges)
     print("steps=%d (fail=%d)" % (len(heads), len(fails)))
-    return (fence_ok and has_mermaid), len(heads)
+    print("src_missing=%d %s" % (len(missing), missing))
+    return (fence_ok and has_mermaid and not missing), len(heads)
 
 
 def main(path):
