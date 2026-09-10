@@ -13,6 +13,7 @@ src_missing が 0 でなければ、出どころ（ファイル・関数）を�
 import re
 import sys
 from html.parser import HTMLParser
+from pathlib import Path
 
 VOID = {"meta", "link", "br", "hr", "img", "input", "source"}
 
@@ -109,7 +110,25 @@ def check_md(text):
 
 def main(path):
     text = open(path, encoding="utf-8").read()
-    unreplaced = re.findall(r"\{\{\w+\}\}", text)
+
+    # 「未置換」はこのスキル自身の template.html にあるプレースホルダーだけを指す。
+    # 生成物が扱うドメインの値（`{{source_text}}`・`{{style_guide}}` のような、
+    # 対象システムの実プロンプトのスロット名）は `{{...}}` の見た目をしているが
+    # 別物 — 全部を拾う素朴な正規表現だと、これらを本文に書いた時点で誤検知する
+    # （このスキル自身の実例で 2026-09-10 に踏んだ）。
+    # template.html 側のプレースホルダーは全大文字スネークケースで統一されている
+    # ので、そこから拾った名前だけを対象にする。
+    # template.html が読めない・壊れている環境でもこのチェック自体は落とさない
+    # （この判定だけ効かなくなる。プレースホルダー名の集合が分からない以上、
+    # それ以外の代替は無い）。存在しない・権限が無い（OSError）だけでなく、
+    # エンコーディングが壊れている（UnicodeDecodeError は ValueError 系統で
+    # OSError には含まれない）場合も同じ扱いにする
+    template_path = Path(__file__).parent / "template.html"
+    try:
+        known_names = set(re.findall(r"\{\{(\w+)\}\}", template_path.read_text(encoding="utf-8")))
+    except (OSError, UnicodeError):
+        known_names = set()
+    unreplaced = [m for m in re.findall(r"\{\{\w+\}\}", text) if m[2:-2] in known_names]
     print("unreplaced=%d %s" % (len(unreplaced), sorted(set(unreplaced))))
 
     if path.lower().endswith(".md"):
