@@ -235,6 +235,39 @@
   }
   .pill.warn { background: var(--warn-dim); color: var(--warn); }
 
+  /* ---- 省略のアコーディオン（public で同一参加者内へ折りたたんだ箇所に添える） ---- */
+  details.omitted {
+    margin-top: 0.35rem;
+    padding: 0.6rem 0.8rem;
+    background: var(--surface-2);
+    border-radius: 2px;
+  }
+  details.omitted > summary {
+    cursor: pointer;
+    font-size: 0.86rem;
+    color: var(--ink-soft);
+    list-style: none;
+  }
+  details.omitted > summary::-webkit-details-marker { display: none; }
+  details.omitted > summary::before { content: "▸ "; color: var(--muted); }
+  details.omitted[open] > summary::before { content: "▾ "; }
+  details.omitted > summary strong { font-weight: 700; }
+  details.omitted .why { color: var(--ink-soft); font-size: 0.88rem; margin: 0.6rem 0 0; }
+  .prompt-box { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.6rem; }
+  .prompt-box pre.code { font-size: 0.82rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .copy-btn {
+    align-self: flex-start;
+    font: 500 0.82rem var(--mono);
+    padding: 0.35rem 0.8rem;
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    cursor: pointer;
+  }
+  .copy-btn:hover { background: var(--accent); color: var(--accent-ink); }
+  .copy-btn.copied { background: #dff1e3; border-color: #2f7d4f; color: #1f5c38; }
+
   footer {
     border-top: 1px solid var(--line);
     padding-block: 1.75rem 3rem;
@@ -394,6 +427,16 @@ sequenceDiagram
           <p class="src">{{STEP_SRC}}</p>
           <p>{{STEP_DESC}}</p>
           <pre class="code">{{STEP_CODE}}</pre>
+          <!-- public で参加者境界をまたがない呼び出し連鎖を折りたたんだときだけ残す。
+               full や、折りたたんでいない step では丸ごと削る -->
+          <details class="omitted">
+            <summary><strong>省略されているもの：</strong>{{OMITTED_SUMMARY}}</summary>
+            <p class="why">{{OMITTED_WHY}}</p>
+            <div class="prompt-box">
+              <pre class="code" id="omit-2">{{OMITTED_PROMPT}}</pre>
+              <button class="copy-btn" type="button" data-target="omit-2">📋 このプロンプトをコピー</button>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -428,6 +471,39 @@ sequenceDiagram
     body.innerHTML = '';
     body.appendChild(svg.cloneNode(true));
     document.getElementById('zoom').showModal();
+  });
+
+  // 「省略した点」のプロンプトをクリップボードへコピーする。
+  // file:// で開く前提なので navigator.clipboard が使えない環境があり、
+  // その場合は execCommand('copy') にフォールバックする。
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('.copy-btn');
+    if (!btn) return;
+    var src = document.getElementById(btn.getAttribute('data-target'));
+    if (!src) return;
+    var text = src.textContent;
+    var label = btn.textContent;
+    function showResult(ok) {
+      btn.textContent = ok ? '✅ コピーしました' : '⚠️ コピーに失敗しました';
+      btn.classList.toggle('copied', ok);
+      setTimeout(function () {
+        btn.textContent = label;
+        btn.classList.remove('copied');
+      }, 1800);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { showResult(true); }, function () { showResult(false); });
+      return;
+    }
+    var range = document.createRange();
+    range.selectNodeContents(src);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    sel.removeAllRanges();
+    showResult(ok);
   });
 </script>
 
