@@ -22,7 +22,7 @@
     },
     {
       "name": "cozy-doc",
-      "description": "読み手を迷わせず、くつろいで読める形にする。diff-guide スキルで差分（未コミットの変更・ブランチ間・PR）を、seq-values スキルで処理の流れ（シーケンス図＋矢印ごとの実値）を、それぞれ読む順に並べたスタンドアロン HTML にする",
+      "description": "読み手を迷わせず、くつろいで読める形にする。seq-values スキルで処理の流れ（シーケンス図＋矢印ごとの実値）を、diff-guide スキルで差分（未コミットの変更・ブランチ間・PR）を、それぞれ読む順に並べたスタンドアロン HTML にする",
       "source": "./plugins/cozy-doc",
       "license": "MIT",
       "keywords": [

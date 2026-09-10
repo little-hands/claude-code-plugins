@@ -289,7 +289,7 @@
       <div class="filebar">✏️ <span class="mod">changed</span> · fx/converter.py · +12 / -6</div>
       <div class="lines">
         <div class="line del"><span class="ln">1</span><span class="txt">from fx.money_util import round_jpy</span></div>
-        <div class="line del"><span class="ln">3</span><span class="txt">FEE = 0.02</span></div>
+        <div class="line del"><span class="ln">4</span><span class="txt">FEE = 0.02</span></div>
         <div class="line add"><span class="ln">4</span><span class="txt">from fx.rounding import FEE_RATE, Rounding, apply</span></div>
       </div>
       <div class="snip">⋯ ここから to_jpy の置き換え ⋯</div>
@@ -346,7 +346,7 @@
       </div>
       <div class="snip">⋯ 空行と def main の行 ⋯</div>
       <div class="lines">
-        <div class="line del"><span class="ln">9</span><span class="txt">    amount = float(argv[1])</span></div>
+        <div class="line del"><span class="ln">7</span><span class="txt">    amount = float(argv[1])</span></div>
         <div class="line add"><span class="ln">9</span><span class="txt">    amount = Decimal(argv[1])</span></div>
         <div class="line add"><span class="ln">11</span><span class="txt">    try:</span></div>
         <div class="line add"><span class="ln">12</span><span class="txt">        print(f"{to_jpy(amount, currency)} JPY")</span></div>
@@ -362,7 +362,7 @@
   </section>
 
   <footer class="end">
-    <a href="../">← サンプル一覧へ戻る</a><br>
+    <a href="../index.html">← サンプル一覧へ戻る</a><br>
     <code>/cozy-doc:diff-guide</code> の出力サンプル。題材は架空の為替換算デモで、実在のサービス・顧客データは含まない。<strong>数値は動く実装を 2 コミット分こしらえ、実行して取った</strong>（<code>pytest -q</code> と <code>python3 fx/cli.py 29.99 USD</code>）。スキル本体は <a href="https://github.com/little-hands/claude-code-plugins/tree/main/plugins/cozy-doc">little-hands/claude-code-plugins</a>。
   </footer>
 

@@ -7,6 +7,8 @@
 共通で unreplaced=0 と RESULT=ok を確認し、
 badges の並びを図の矢印番号と突き合わせる。
 steps の fail が 0 なら失敗系が入っていない（原則 3 違反）。
+src_missing が 0 でなければ、出どころ（ファイル・関数）を書いていない
+実値ブロックがある。
 """
 import re
 import sys
@@ -42,11 +44,19 @@ def check_html(text):
     steps = re.findall(r'class="step(?:\s+[^"]*)?"', text)
     fails = [s for s in steps if "is-fail" in s]
 
+    # 出どころ（p.src）は全 .step に要る。ブロック単位で在り方を見る。
+    # 空の <p class="src"></p> は置いていないのと同じなので中身まで見る
+    blocks = re.split(r'<div class="step(?:\s+[^"]*)?"', text)[1:]
+    # 直後が < だと中身ではなく閉じタグ・入れ子なので、文字が来ることを要求する
+    filled = re.compile(r'class="src"[^>]*>\s*[^<\s]')
+    src_missing = sum(1 for b in blocks if not filled.search(b))
+
     print("tag_errors=%d %s" % (len(parser.errors), parser.errors[:5]))
     print("unclosed=%s" % parser.stack)
     print("badges=%s" % badges)
     print("steps=%d (fail=%d)" % (len(steps), len(fails)))
-    return (not parser.errors and not parser.stack), len(steps)
+    print("src_missing=%d" % src_missing)
+    return (not parser.errors and not parser.stack and not src_missing), len(steps)
 
 
 def check_md(text):
@@ -66,11 +76,25 @@ def check_md(text):
     fence_ok = len(fences) % 2 == 0
     has_mermaid = any(l.lstrip().startswith("```mermaid") for l in lines)
 
+    # 出どころは見出しの次の非空行。md にはクラス属性が無いので、
+    # インラインコードで始まるかどうかを目印にする。
+    # コードフェンス（```）も ` で始まるため、先に弾く
+    # （弾かないと「見出しの直後が実値のフェンス」を出どころと誤認する）
+    src_missing = 0
+    for i, line in enumerate(lines):
+        if not HEAD.match(line):
+            continue
+        following = (l.strip() for l in lines[i + 1:])
+        first = next((l for l in following if l), "")
+        if first.startswith("```") or not first.startswith("`"):
+            src_missing += 1
+
     print("fences=%d (balanced=%s)" % (len(fences), fence_ok))
     print("mermaid_block=%s" % has_mermaid)
     print("badges=%s" % badges)
     print("steps=%d (fail=%d)" % (len(heads), len(fails)))
-    return (fence_ok and has_mermaid), len(heads)
+    print("src_missing=%d" % src_missing)
+    return (fence_ok and has_mermaid and not src_missing), len(heads)
 
 
 def main(path):

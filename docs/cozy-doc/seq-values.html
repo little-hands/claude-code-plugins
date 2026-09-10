@@ -226,6 +226,15 @@
   .step > .body { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
   .step h3 { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1.7; }
   .step h3 code { font-size: 0.95em; }
+  /* 出どころ（ファイル・関数）。h3 に続けて置き、見出しの一部に見えるよう詰める */
+  .step .src {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    line-height: 1.6;
+    color: var(--muted);
+    margin-top: -0.45rem;
+    overflow-wrap: anywhere;
+  }
 
   pre.code {
     margin: 0;
@@ -382,7 +391,7 @@
       <table>
         <tbody>
           <tr><th>手数料</th><td>換算額に <strong>2%</strong> 乗せる。レートに掛けるのではなく、<strong>円換算したあとの額に掛ける</strong></td></tr>
-          <tr><th>丸め</th><td>既定は<strong>切り上げ</strong>（1 円未満を買い物客に有利な側へ倒さない）。呼び出し側が切り捨ても選べる</td></tr>
+          <tr><th>丸め</th><td>既定は<strong>切り上げ</strong>（1 円未満の端数を店側が負担しない）。呼び出し側が切り捨ても選べる</td></tr>
           <tr><th>レートの有効期限</th><td><strong>600 秒</strong>。最後に取った時刻からの経過がこれ未満なら控えを使う</td></tr>
           <tr><th>取り扱いのない通貨</th><td>0 円や未定義を返さず<strong>例外にする</strong>。コマンドは終了コード <strong>2</strong> で終わる</td></tr>
           <tr><th>計算の型</th><td>すべて <code>Decimal</code>。<code>float</code> を混ぜない（丸める前の額が 2 進で表せず、境界で 1 円ずれるため）</td></tr>
@@ -440,6 +449,7 @@ sequenceDiagram
         <div class="badge">1<br>2</div>
         <div class="body">
           <h3>円価格を求める — 何を渡すか</h3>
+          <p class="src">fx/cli.py · main() → fx/converter.py · to_jpy()</p>
           <p>買い物客が開いたのは <strong>$29.99 の商品ページ</strong>。そこから換算処理へ渡すのは<strong>金額と通貨コードだけ</strong>。丸めの向きと時刻は既定値に任せる。画面側が丸めを意識しなくて済むよう、既定を持たせてある。</p>
           <pre class="code">to_jpy(<span class="k">Decimal("29.99")</span>, <span class="k">"USD"</span>)
 <span class="c">#   mode = Rounding.CEIL   ← 既定（切り上げ）</span>
@@ -451,6 +461,7 @@ sequenceDiagram
         <div class="badge">3</div>
         <div class="body">
           <h3>レートを問い合わせる — 時刻も一緒に渡す</h3>
+          <p class="src">fx/converter.py · to_jpy() → fx/rate_client.py · fetch_rate()</p>
           <p>時刻を引数で受けるので、期限をまたいだ挙動を待たずに確かめられる。以下は <code>1757400000.0</code>（= 基準時刻）を渡した実行。</p>
           <pre class="code">fetch_rate(<span class="k">"USD"</span>, now=<span class="k">1_757_400_000.0</span>)</pre>
         </div>
@@ -460,6 +471,7 @@ sequenceDiagram
         <div class="badge">4b<br>5</div>
         <div class="body">
           <h3>控えが無いので表を引き、控える</h3>
+          <p class="src">fx/rate_client.py · fetch_rate()</p>
           <p>初回なので控えは空。レート表を引いた値を<strong>取得時刻と組で控え</strong>、どちらから来たかを示す印（<code>miss</code>）と一緒に返す。</p>
           <pre class="code"><span class="c">#   1 回目の戻り</span>
 (<span class="k">Decimal("155.80")</span>, <span class="k">"miss"</span>)
@@ -473,6 +485,7 @@ _cache[<span class="k">"USD"</span>] = (<span class="k">Decimal("155.80")</span>
         <div class="badge">4a</div>
         <div class="body">
           <h3>2 回目以降は控えを使う — 切れ目は 600 秒</h3>
+          <p class="src">fx/rate_client.py · fetch_rate()</p>
           <p>同じ通貨をもう一度引いたときの分かれ目。<strong>600 秒未満なら控え、超えたら取り直し</strong>。境界は「未満」なので、ちょうど 600 秒は取り直す側に入る。</p>
           <pre class="code"><span class="c">#   +120 秒 → 120 &lt; 600 なので控えを使う</span>
 fetch_rate(<span class="k">"USD"</span>, now=<span class="k">1_757_400_120.0</span>)
@@ -489,6 +502,7 @@ fetch_rate(<span class="k">"USD"</span>, now=<span class="k">1_757_400_900.0</sp
         <div class="badge">6</div>
         <div class="body">
           <h3>手数料を乗せる — 掛ける順番が結果を決める</h3>
+          <p class="src">fx/converter.py · to_jpy()</p>
           <p>先に円換算し、<strong>そのあとで 2% を掛ける</strong>。丸める前の額は小数 6 桁まで残る。ここで丸めないのが肝で、途中で丸めると 7. の向きの指定が効かなくなる。</p>
           <pre class="code">gross = amount * rate * (Decimal("1") + FEE_RATE)
 <span class="c">#   ① 円換算     29.99 × 155.80     = 4672.4420</span>
@@ -500,6 +514,7 @@ fetch_rate(<span class="k">"USD"</span>, now=<span class="k">1_757_400_900.0</sp
         <div class="badge">7<br>8</div>
         <div class="body">
           <h3>丸める — 向きの違いが 1 円として出る</h3>
+          <p class="src">fx/rounding.py · apply()</p>
           <p>同じ <code>4765.890840</code> から、向きの指定だけで結果が分かれる。<strong>既定は切り上げ</strong>なので、画面に出るのは 4766。</p>
           <pre class="code">apply(<span class="k">Decimal("4765.890840")</span>, Rounding.CEIL)   → <span class="k">4766</span>
 apply(<span class="k">Decimal("4765.890840")</span>, Rounding.FLOOR)  → <span class="k">4765</span></pre>
@@ -510,6 +525,7 @@ apply(<span class="k">Decimal("4765.890840")</span>, Rounding.FLOOR)  → <span 
         <div class="badge">9<br>10</div>
         <div class="body">
           <h3>画面に出す — 整数の円と単位だけ</h3>
+          <p class="src">fx/cli.py · main()</p>
           <p>返るのは <code>int</code> 1 つ。レートも手数料も画面には出さない。どこから来たレートか（<code>hit</code> / <code>miss</code>）も、この範囲では捨てている。</p>
           <pre class="code">$ python3 fx/cli.py 29.99 USD
 <span class="k">4766 JPY</span>
@@ -521,6 +537,7 @@ apply(<span class="k">Decimal("4765.890840")</span>, Rounding.FLOOR)  → <span 
         <div class="badge">4c<br>4d<br>4e</div>
         <div class="body">
           <h3>取り扱いのない通貨 — 0 円を返さず止める</h3>
+          <p class="src">fx/rate_client.py · RateUnavailable → fx/cli.py · main()</p>
           <p>レート表に無い通貨は、<strong>例外にして上まで素通しする</strong>。途中で 0 円や「レート 1.0」に倒すと、買い物客には正しい値段に見えてしまう。コマンドは標準エラーへ 1 行出し、<strong>終了コード 2</strong> で終わる。</p>
           <pre class="code">to_jpy(<span class="k">Decimal("29.99")</span>, <span class="k">"BRL"</span>)
 <span class="c">#   → RateUnavailable   currency="BRL"   args=('BRL',)</span>
@@ -557,7 +574,7 @@ $ python3 fx/cli.py 29.99 BRL
   });
 </script>
 
-<footer class="wrap"><a href="../">← サンプル一覧へ戻る</a><br>
+<footer class="wrap"><a href="../index.html">← サンプル一覧へ戻る</a><br>
 <code>/cozy-doc:seq-values</code> の出力サンプル。題材は架空の為替換算デモで、実在のサービス・顧客データは含まない。<strong>実値は動く実装をこしらえて実行し、その出力から取った</strong>（<code>python3 fx/cli.py</code> と中間値を出すスクリプト）。スキル本体は <a href="https://github.com/little-hands/claude-code-plugins/tree/main/plugins/cozy-doc">little-hands/claude-code-plugins</a>。</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"

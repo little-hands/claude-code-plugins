@@ -226,6 +226,15 @@
   .step > .body { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
   .step h3 { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1.7; }
   .step h3 code { font-size: 0.95em; }
+  /* 出どころ（ファイル・関数）。h3 に続けて置き、見出しの一部に見えるよう詰める */
+  .step .src {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    line-height: 1.6;
+    color: var(--muted);
+    margin-top: -0.45rem;
+    overflow-wrap: anywhere;
+  }
 
   pre.code {
     margin: 0;
@@ -415,6 +424,7 @@ sequenceDiagram
         <div class="badge">2</div>
         <div class="body">
           <h3>{{STEP_TITLE}}</h3>
+          <p class="src">{{STEP_SRC}}</p>
           <p>{{STEP_DESC}}</p>
           <pre class="code">{{STEP_CODE}}</pre>
         </div>
@@ -424,6 +434,7 @@ sequenceDiagram
         <div class="badge">8b</div>
         <div class="body">
           <h3>{{FAIL_TITLE}}</h3>
+          <p class="src">{{FAIL_SRC}}</p>
           <p>{{FAIL_DESC}} <span class="pill warn">stale</span></p>
           <pre class="code">{{FAIL_CODE}}</pre>
         </div>
