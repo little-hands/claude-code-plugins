@@ -28,38 +28,6 @@
     --mono:  "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --paper:      #0f1319;
-      --surface:    #171d25;
-      --surface-2:  #1e252f;
-      --ink:        #e2e7ee;
-      --ink-soft:   #c2cad6;
-      --muted:      #8e99a9;
-      --line:       #2c343f;
-      --accent:     #8fb4ea;
-      --accent-ink: #0f1319;
-      --accent-dim: #1c2735;
-      --warn:       #e39179;
-      --warn-dim:   #2e2019;
-    }
-  }
-
-  :root[data-theme="dark"] {
-    --paper:      #0f1319;
-    --surface:    #171d25;
-    --surface-2:  #1e252f;
-    --ink:        #e2e7ee;
-    --ink-soft:   #c2cad6;
-    --muted:      #8e99a9;
-    --line:       #2c343f;
-    --accent:     #8fb4ea;
-    --accent-ink: #0f1319;
-    --accent-dim: #1c2735;
-    --warn:       #e39179;
-    --warn-dim:   #2e2019;
-  }
-
   body {
     margin: 0;
     background: var(--paper);
@@ -192,9 +160,8 @@
 
   /* ---- diagram ---- */
   .diagram {
-    /* 固定配色。mermaid は初回描画時に色を SVG へ焼き込み、テーマが
-       後から変わっても再描画しないため、var() で追従させると
-       表示中の切替で配色だけ取り残されて判読不能になる */
+    /* 図の枠は直値で持つ。mermaid が SVG へ焼き込む色（下の
+       themeVariables）と揃える必要があり、CSS 変数側だけ動くとずれる */
     background: #ffffff;
     border: 1px solid #d8dee7;
     border-radius: 2px;
@@ -335,7 +302,7 @@
     cursor: pointer;
   }
   .zoombar button:hover { background: var(--accent-dim); }
-  /* ダイアログの中も図と同じ理由で固定配色（テーマ変数を使わない） */
+  /* 中身は図そのものなので、枠も図と同じ直値で揃える */
   dialog.zoom {
     width: min(96vw, 120rem);
     max-width: none;
@@ -585,12 +552,9 @@ $ python3 fx/cli.py 29.99 BRL
       document.documentElement.classList.add('no-mermaid');
       return;
     }
-    // 固定パレット（意図的）。ページのライト/ダーク切替を追わない。
-    // mermaid は初回描画時にしか色を出さず、表示中のテーマ変更では
-    // 再描画されないため、CSS 変数を読むと配色だけ古いテーマ色の
-    // まま取り残されて判読不能になる（実測で確認済み）。
-    // .diagram の背景も同じ理由で白に固定してあるので、常にこの
-    // ライト基調パレットで正しく読める。
+    // パレットは直値で持つ。mermaid は初回描画時に色を SVG へ焼き込み、
+    // あとから再描画しないので、CSS 変数を読ませても追従できない。
+    // .diagram の背景（白）と同じ値を並べて揃えてある。
     mermaid.initialize({
       // 描画後に倍率を当てるため自動描画は使わず、下で run() を呼ぶ
       startOnLoad: false,

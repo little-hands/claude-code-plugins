@@ -4,16 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>丸め方針とレートキャッシュを入れた差分の読み方</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
 <style>
+  /* 地の配色・書体・横幅は seq-values と同じ値にしてある（同じプラグインの
+     出力が別物に見えないように）。片方を変えたら両方直す */
   :root {
-    --paper: #f7f5f1;
+    --paper: #f7f8fa;
     --surface: #ffffff;
-    --ink: #1f2430;
-    --ink-soft: #565f73;
-    --ink-faint: #8890a0;
-    --line: #ddd8cd;
-    --accent: #2f5d8a;
-    --accent-soft: #e4edf5;
+    --ink: #14181f;
+    --ink-soft: #3d4652;
+    --ink-faint: #5b6472;
+    --line: #d8dee7;
+    --accent: #143d73;
+    --accent-soft: #e3eaf5;
     --add-bg: #e6f4e6;
     --add-ink: #1f6b2f;
     --del-bg: #fbe9e7;
@@ -21,54 +26,39 @@
     --code-bg: #14171c;
     --code-ink: #d8dde6;
     --code-line: #262b34;
-    /* diff の中は常に暗い地。テーマで反転させない（反転させるとライトで 2.4:1 まで落ちる） */
+    /* diff の中だけ暗い地。明るい地に置き換えると本文とのコントラストが 2.4:1 まで落ちる */
     --diff-add-bg: #16261a;
     --diff-add-ink: #7fd18f;
     --diff-del-bg: #2c1a17;
     --diff-del-ink: #e0897c;
     --diff-mod: #7fb0dd;
     --diff-faint: #98a0b0;
-    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Hiragino Mincho ProN", "Yu Mincho", serif;
-    --sans: -apple-system, "Hiragino Sans", "Yu Gothic", "Segoe UI", sans-serif;
-    --mono: "SF Mono", "Menlo", "Consolas", monospace;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --paper: #14171c;
-      --surface: #191d24;
-      --ink: #e8e6df;
-      --ink-soft: #9aa2b2;
-      --ink-faint: #6a7180;
-      --line: #2a2f38;
-      --accent: #7fb0dd;
-      --accent-soft: #1c2b3a;
-      --add-bg: #16261a;
-      --add-ink: #7fd18f;
-      --del-bg: #2c1a17;
-      --del-ink: #e0897c;
-      --code-bg: #0c0e12;
-      --code-ink: #d8dde6;
-      --code-line: #1f242c;
-    }
+    --step:  clamp(1rem, 0.9rem + 0.4vw, 1.0625rem);
+    --wrap:  min(100% - 3rem, 60rem);
+    --serif: "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", serif;
+    --sans:  "Noto Sans JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+    --mono:  "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
     background: var(--paper);
     color: var(--ink);
-    font-family: var(--serif);
-    font-size: 16px;
-    line-height: 1.75;
+    font-family: var(--sans);
+    font-size: var(--step);
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 46rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
-  header.top { max-width: 46rem; margin: 0 auto; padding: 0 1.5rem; }
+  .wrap { width: var(--wrap); margin: 0 auto; padding: 3.5rem 0 6rem; }
+  header.top { width: var(--wrap); margin: 0 auto; }
   .eyebrow {
     font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.14em;
     text-transform: uppercase; color: var(--accent); margin: 0 0 0.6rem;
   }
   h1 {
-    font-family: var(--sans); font-weight: 700; font-size: 2rem;
-    text-wrap: balance; margin: 0 0 0.5rem; color: var(--ink);
+    font-family: var(--serif); font-weight: 700;
+    font-size: clamp(1.85rem, 1.4rem + 1.9vw, 2.6rem);
+    line-height: 1.35; text-wrap: balance; margin: 0 0 0.5rem; color: var(--ink);
   }
   .lede { color: var(--ink-soft); font-size: 1.05rem; max-width: 40rem; margin: 0 0 1rem; }
   .status-row {
@@ -96,7 +86,7 @@
     font-family: var(--mono); font-size: 0.78rem; color: var(--accent); letter-spacing: 0.08em;
   }
   h2 {
-    font-family: var(--sans); font-size: 1.35rem; font-weight: 700; text-wrap: balance;
+    font-family: var(--serif); font-size: 1.4rem; font-weight: 700; text-wrap: balance;
     margin: 0.2rem 0 0.2rem; display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap;
   }
   h2 code {
@@ -166,10 +156,7 @@
     font-size: 0.82rem; color: var(--ink-soft); font-family: var(--sans);
   }
 
-  @media (max-width: 40rem) {
-    .wrap, header.top { padding-left: 1.1rem; padding-right: 1.1rem; }
-    h1 { font-size: 1.6rem; }
-  }
+  /* 横の余白は --wrap（100% - 3rem）が持つので、狭い画面でも足さない */
 </style>
 </head>
 <body>
