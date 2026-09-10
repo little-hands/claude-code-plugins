@@ -36,27 +36,36 @@ class TagBalance(HTMLParser):
             self.stack.pop()
 
 
+BADGE = re.compile(r'class="badge">(.*?)</div>', re.S)
+# 直後が < だと中身ではなく閉じタグなので、文字が来ることを要求する
+SRC_FILLED = re.compile(r'class="src"[^>]*>\s*[^<\s]')
+
+
 def check_html(text):
     parser = TagBalance()
     parser.feed(text)
-    badges = re.findall(r'class="badge">(.*?)</div>', text, re.S)
+
+    badges = BADGE.findall(text)
     # .steps コンテナを数えないよう、step の直後で区切る
     steps = re.findall(r'class="step(?:\s+[^"]*)?"', text)
     fails = [s for s in steps if "is-fail" in s]
 
-    # 出どころ（p.src）は全 .step に要る。ブロック単位で在り方を見る。
-    # 空の <p class="src"></p> は置いていないのと同じなので中身まで見る
-    blocks = re.split(r'<div class="step(?:\s+[^"]*)?"', text)[1:]
-    # 直後が < だと中身ではなく閉じタグ・入れ子なので、文字が来ることを要求する
-    filled = re.compile(r'class="src"[^>]*>\s*[^<\s]')
-    src_missing = sum(1 for b in blocks if not filled.search(b))
+    # 出どころ（p.src）は全 .step に要る。欠けている矢印番号まで出す
+    # （件数だけだと、直す側がもう一度探すことになる）
+    blocks = re.split(r'<[a-zA-Z][\w-]*\s+class="step(?:\s+[^"]*)?"', text)[1:]
+    missing = [
+        (BADGE.search(b).group(1).strip() if BADGE.search(b) else "?")
+        for b in blocks
+        if not SRC_FILLED.search(b)
+    ]
 
     print("tag_errors=%d %s" % (len(parser.errors), parser.errors[:5]))
     print("unclosed=%s" % parser.stack)
     print("badges=%s" % badges)
     print("steps=%d (fail=%d)" % (len(steps), len(fails)))
-    print("src_missing=%d" % src_missing)
-    return (not parser.errors and not parser.stack and not src_missing), len(steps)
+    print("src_missing=%d %s" % (len(missing), missing))
+
+    return (not parser.errors and not parser.stack and not missing), len(steps)
 
 
 def check_md(text):
@@ -80,21 +89,22 @@ def check_md(text):
     # インラインコードで始まるかどうかを目印にする。
     # コードフェンス（```）も ` で始まるため、先に弾く
     # （弾かないと「見出しの直後が実値のフェンス」を出どころと誤認する）
-    src_missing = 0
+    missing = []
     for i, line in enumerate(lines):
-        if not HEAD.match(line):
+        m = HEAD.match(line)
+        if not m:
             continue
         following = (l.strip() for l in lines[i + 1:])
         first = next((l for l in following if l), "")
         if first.startswith("```") or not first.startswith("`"):
-            src_missing += 1
+            missing.append(m.group(1))
 
     print("fences=%d (balanced=%s)" % (len(fences), fence_ok))
     print("mermaid_block=%s" % has_mermaid)
     print("badges=%s" % badges)
     print("steps=%d (fail=%d)" % (len(heads), len(fails)))
-    print("src_missing=%d" % src_missing)
-    return (fence_ok and has_mermaid and not src_missing), len(heads)
+    print("src_missing=%d %s" % (len(missing), missing))
+    return (fence_ok and has_mermaid and not missing), len(heads)
 
 
 def main(path):
