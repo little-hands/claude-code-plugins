@@ -9,6 +9,12 @@ little-hands が作る Claude Code プラグイン集。
 | [article-assistant](./plugins/article-assistant/) | 記事執筆を伴走サポートする編集者。アイデアの深掘り→切り口ブレスト→狙いの整理→構成→セクション生成まで対話でガイド |
 | [cozy-doc](./plugins/cozy-doc/) | 読み手を迷わせず、くつろいで読める形にする。`diff-guide` スキルで差分を、`seq-values` スキルでシーケンス図＋実値を、それぞれ読む順に並べたスタンドアロン HTML に生成 |
 
+## 出力サンプル
+
+実際に何が出るかは、ブラウザで描画したものを見るのが早いです。
+
+- **[cozy-doc の出力サンプル](https://little-hands.github.io/claude-code-plugins/)** — `diff-guide`（差分の解説）と `seq-values`（シーケンス図＋矢印ごとの実値）の 2 枚
+
 ## インストール
 
 ターミナルで `claude` を起動し、以下のコマンドでマーケットプレイスを追加してください。

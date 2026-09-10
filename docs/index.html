@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cozy-doc — 出力サンプル</title>
+<style>
+  :root {
+    --paper: #f7f5f1;
+    --surface: #ffffff;
+    --ink: #1f2430;
+    --ink-soft: #565f73;
+    --line: #ddd8cd;
+    --accent: #2f5d8a;
+    --accent-soft: #e4edf5;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Hiragino Mincho ProN", "Yu Mincho", serif;
+    --sans: -apple-system, "Hiragino Sans", "Yu Gothic", "Segoe UI", sans-serif;
+    --mono: "SF Mono", "Menlo", "Consolas", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #14171c;
+      --surface: #191d24;
+      --ink: #e8e6df;
+      --ink-soft: #9aa2b2;
+      --line: #2a2f38;
+      --accent: #7fb0dd;
+      --accent-soft: #1c2b3a;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper); color: var(--ink);
+    font-family: var(--serif); font-size: 16px; line-height: 1.75;
+  }
+  .wrap { max-width: 46rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 0.6rem;
+  }
+  h1 { font-family: var(--sans); font-weight: 700; font-size: 2rem; margin: 0 0 0.6rem; text-wrap: balance; }
+  .lede { color: var(--ink-soft); font-size: 1.05rem; margin: 0 0 2.5rem; }
+  p { margin: 0 0 1rem; }
+  a { color: var(--accent); }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 3px;
+    padding: 1.4rem 1.6rem; margin: 0 0 1.6rem;
+  }
+  .card h2 {
+    font-family: var(--sans); font-size: 1.2rem; margin: 0 0 0.3rem;
+    display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap;
+  }
+  .card h2 a { text-decoration: none; border-bottom: 1px solid var(--line); }
+  .card h2 a:hover { border-color: var(--accent); }
+  .card .cmd {
+    font-family: var(--mono); font-size: 0.74rem; color: var(--ink-soft);
+    background: var(--accent-soft); padding: 0.15em 0.5em; border-radius: 2px;
+  }
+  .card p { font-size: 0.95rem; margin: 0 0 0.8rem; color: var(--ink-soft); }
+  .card ul { margin: 0; padding-left: 1.3rem; font-size: 0.92rem; color: var(--ink-soft); }
+  .card li { margin: 0.15rem 0; }
+  strong { color: var(--ink); }
+
+  .note {
+    border-left: 3px solid var(--accent); background: var(--accent-soft);
+    padding: 0.85rem 1.1rem; border-radius: 0 3px 3px 0; font-size: 0.92rem; margin: 2.4rem 0 0;
+  }
+  .note p:last-child { margin-bottom: 0; }
+  code { font-family: var(--mono); font-size: 0.88em; background: var(--accent-soft); padding: 0.1em 0.35em; border-radius: 2px; }
+
+  footer {
+    margin-top: 3.5rem; padding-top: 1.6rem; border-top: 1px solid var(--line);
+    font-size: 0.82rem; color: var(--ink-soft); font-family: var(--sans);
+  }
+  @media (max-width: 40rem) {
+    .wrap { padding-left: 1.1rem; padding-right: 1.1rem; }
+    h1 { font-size: 1.6rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">little-hands / claude-code-plugins</p>
+  <h1>cozy-doc — 出力サンプル</h1>
+  <p class="lede">Claude Code プラグイン <strong>cozy-doc</strong> の 2 スキルが、実際に何を吐くか。どちらも 1 ファイルで完結する HTML で、生成後はブラウザで開かれます。</p>
+
+  <div class="card">
+    <h2><a href="./cozy-doc/diff-guide.html">差分を読む順に並べた解説</a> <span class="cmd">/cozy-doc:diff-guide</span></h2>
+    <p>丸め方針とレートのキャッシュを入れた 6 ファイルの差分を、<strong>依存の順</strong>（型 → それを作る側 → それを使う側 → 配線）に並べ替えたもの。</p>
+    <ul>
+      <li>各節の頭に「<strong>なぜ今これを読むのか</strong>」が 1 文ある</li>
+      <li>diff は全文を貼らず、落とした部分は「何を落としたか」を書く</li>
+      <li>削除されたファイル・探しても無いものを先に断る</li>
+      <li>読まなくていいファイルを、理由つきで名指しする</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2><a href="./cozy-doc/seq-values.html">シーケンス図＋矢印ごとの実値</a> <span class="cmd">/cozy-doc:seq-values</span></h2>
+    <p>$29.99 の商品ページを開いてから「4766 JPY」が出るまでを、<strong>図（流れ）と実値（中身）を別セクションに分け、矢印番号で対応させて</strong>説明したもの。</p>
+    <ul>
+      <li>図には数値を入れない（両方に置くと片方だけ古くなる）</li>
+      <li>1 本のシナリオで通す</li>
+      <li><strong>うまくいかない例を必ず入れる</strong>（ここでは取り扱いのない通貨）</li>
+      <li>広い画面では左に図・右に実値。図は貼り付いたまま実値だけスクロールする</li>
+    </ul>
+  </div>
+
+  <div class="note">
+    <p><strong>題材はどちらも架空の為替換算デモです。</strong> ただし数字は推測で埋めていません — 動く実装をこしらえ、テストとコマンドを実行した出力から取っています。実在のサービス・顧客データは含みません。</p>
+  </div>
+
+  <footer>
+    スキル本体とインストール方法は <a href="https://github.com/little-hands/claude-code-plugins">little-hands/claude-code-plugins</a>（<code>/plugin marketplace add little-hands/claude-code-plugins</code>）。
+  </footer>
+
+</div>
+</body>
+</html>

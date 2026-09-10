@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>丸め方針とレートキャッシュを入れた差分の読み方</title>
+<style>
+  :root {
+    --paper: #f7f5f1;
+    --surface: #ffffff;
+    --ink: #1f2430;
+    --ink-soft: #565f73;
+    --ink-faint: #8890a0;
+    --line: #ddd8cd;
+    --accent: #2f5d8a;
+    --accent-soft: #e4edf5;
+    --add-bg: #e6f4e6;
+    --add-ink: #1f6b2f;
+    --del-bg: #fbe9e7;
+    --del-ink: #a03a2c;
+    --code-bg: #14171c;
+    --code-ink: #d8dde6;
+    --code-line: #262b34;
+    /* diff の中は常に暗い地。テーマで反転させない（反転させるとライトで 2.4:1 まで落ちる） */
+    --diff-add-bg: #16261a;
+    --diff-add-ink: #7fd18f;
+    --diff-del-bg: #2c1a17;
+    --diff-del-ink: #e0897c;
+    --diff-mod: #7fb0dd;
+    --diff-faint: #98a0b0;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Hiragino Mincho ProN", "Yu Mincho", serif;
+    --sans: -apple-system, "Hiragino Sans", "Yu Gothic", "Segoe UI", sans-serif;
+    --mono: "SF Mono", "Menlo", "Consolas", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #14171c;
+      --surface: #191d24;
+      --ink: #e8e6df;
+      --ink-soft: #9aa2b2;
+      --ink-faint: #6a7180;
+      --line: #2a2f38;
+      --accent: #7fb0dd;
+      --accent-soft: #1c2b3a;
+      --add-bg: #16261a;
+      --add-ink: #7fd18f;
+      --del-bg: #2c1a17;
+      --del-ink: #e0897c;
+      --code-bg: #0c0e12;
+      --code-ink: #d8dde6;
+      --code-line: #1f242c;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 16px;
+    line-height: 1.75;
+  }
+  .wrap { max-width: 46rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
+  header.top { max-width: 46rem; margin: 0 auto; padding: 0 1.5rem; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 0.6rem;
+  }
+  h1 {
+    font-family: var(--sans); font-weight: 700; font-size: 2rem;
+    text-wrap: balance; margin: 0 0 0.5rem; color: var(--ink);
+  }
+  .lede { color: var(--ink-soft); font-size: 1.05rem; max-width: 40rem; margin: 0 0 1rem; }
+  .status-row {
+    display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem; font-family: var(--mono);
+    font-size: 0.78rem; color: var(--ink-soft); border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line); padding: 0.8rem 0; margin: 1.4rem 0 0;
+  }
+  .status-row b { color: var(--ink); font-weight: 600; }
+  .status-row .ok { color: var(--add-ink); }
+  .status-row .ng { color: var(--del-ink); }
+
+  nav.toc {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 3px;
+    padding: 1.1rem 1.3rem; margin: 2.2rem 0 0; font-family: var(--sans);
+  }
+  nav.toc p { margin: 0 0 0.6rem; font-size: 0.82rem; color: var(--ink-soft); }
+  nav.toc ol { margin: 0; padding-left: 1.3rem; font-size: 0.92rem; }
+  nav.toc li { margin: 0.2rem 0; }
+  nav.toc a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line); }
+  nav.toc a:hover { border-color: var(--accent); color: var(--accent); }
+  nav.toc code { font-size: 0.85em; }
+
+  section.step { margin-top: 3.6rem; scroll-margin-top: 1.5rem; }
+  section.step .num {
+    font-family: var(--mono); font-size: 0.78rem; color: var(--accent); letter-spacing: 0.08em;
+  }
+  h2 {
+    font-family: var(--sans); font-size: 1.35rem; font-weight: 700; text-wrap: balance;
+    margin: 0.2rem 0 0.2rem; display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap;
+  }
+  h2 code {
+    font-family: var(--mono); font-size: 0.72em; font-weight: 500; color: var(--ink-soft);
+    background: var(--accent-soft); padding: 0.12em 0.5em; border-radius: 2px;
+  }
+  .role { font-size: 0.85rem; color: var(--ink-soft); font-style: italic; margin: 0 0 1rem; }
+  p { margin: 0 0 1rem; }
+  strong { color: var(--ink); }
+  code { font-family: var(--mono); font-size: 0.88em; background: var(--accent-soft); padding: 0.1em 0.35em; border-radius: 2px; }
+
+  .diff {
+    background: var(--code-bg); color: var(--code-ink); border-radius: 4px;
+    overflow-x: auto; margin: 1.1rem 0 1.4rem; font-family: var(--mono);
+    font-size: 0.8rem; line-height: 1.65; border: 1px solid var(--code-line);
+  }
+  .diff .filebar {
+    display: flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.9rem;
+    border-bottom: 1px solid var(--code-line); color: var(--diff-faint);
+    font-size: 0.74rem; letter-spacing: 0.02em;
+  }
+  .diff .filebar .new { color: var(--diff-add-ink); font-weight: 600; }
+  .diff .filebar .mod { color: var(--diff-mod); font-weight: 600; }
+  .diff .filebar .gone { color: var(--diff-del-ink); font-weight: 600; }
+  /* 連続する行は 1 つの .lines にまとめる（pre は使わない — 中に div を置くと HTML が不正になり、
+     white-space: pre のせいで行の間に空行が出る） */
+  .diff .lines { padding: 0.6rem 0; }
+  .diff .line { display: grid; grid-template-columns: calc(4ch + 0.9rem) 1fr; padding: 0 0.9rem; }
+  .diff .line.add { background: var(--diff-add-bg); }
+  .diff .line.del { background: var(--diff-del-bg); }
+  .diff .ln { color: var(--diff-faint); text-align: right; padding-right: 0.9rem; user-select: none; }
+  .diff .add .ln { color: var(--diff-add-ink); }
+  .diff .del .ln { color: var(--diff-del-ink); }
+  .diff .txt { white-space: pre-wrap; word-break: break-word; }
+  .diff .add .txt::before { content: "+ "; color: var(--diff-add-ink); }
+  .diff .del .txt::before { content: "- "; color: var(--diff-del-ink); }
+  .diff .snip { color: var(--diff-faint); padding: 0.3rem 0.9rem; font-size: 0.74rem; }
+
+  .callout {
+    border-left: 3px solid var(--accent); background: var(--accent-soft);
+    padding: 0.85rem 1.1rem; border-radius: 0 3px 3px 0; margin: 1.1rem 0; font-size: 0.92rem;
+  }
+  .callout.watch { border-left-color: var(--del-ink); background: color-mix(in srgb, var(--del-bg) 70%, transparent); }
+  .callout p:last-child { margin-bottom: 0; }
+
+  table.review {
+    width: 100%; border-collapse: collapse; font-size: 0.86rem; margin: 1rem 0 1.6rem; font-family: var(--sans);
+  }
+  table.review th, table.review td {
+    text-align: left; padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--line); vertical-align: top;
+  }
+  table.review th { color: var(--ink-soft); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .sev { font-family: var(--mono); font-size: 0.72rem; font-weight: 700; padding: 0.1em 0.5em; border-radius: 2px; white-space: nowrap; }
+  .sev.must { background: var(--del-bg); color: var(--del-ink); }
+  .sev.should { background: var(--accent-soft); color: var(--accent); }
+  .sev.consider { background: var(--surface); color: var(--ink-soft); border: 1px solid var(--line); }
+  .sev.done { background: var(--add-bg); color: var(--add-ink); }
+  tr.done td { color: var(--ink-soft); }
+  tr.done td:not(:first-child) { text-decoration: line-through; text-decoration-color: var(--ink-faint); }
+
+  /* 長いパス・ファイル名で横スクロールさせない */
+  h2 code, table.review code, nav.toc code { overflow-wrap: anywhere; }
+  .callout code { background: var(--surface); }
+
+  footer.end {
+    margin-top: 4rem; padding-top: 1.6rem; border-top: 1px solid var(--line);
+    font-size: 0.82rem; color: var(--ink-soft); font-family: var(--sans);
+  }
+
+  @media (max-width: 40rem) {
+    .wrap, header.top { padding-left: 1.1rem; padding-right: 1.1rem; }
+    h1 { font-size: 1.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <p class="eyebrow">サンプル出力 · 架空の為替換算デモ · commit 7cdd7b2</p>
+</header>
+
+<div class="wrap">
+
+  <h1>丸め方針とレートキャッシュを入れた差分の読み方</h1>
+  <p class="lede">ドル価格を円に換算する小さなコマンドに、<strong>丸めの向きを呼び出し側から指定できるようにし</strong>、レートに有効期限つきのキャッシュと未対応通貨のエラーを足した差分。<strong>換算レートの取得元は差し替えていない</strong>（固定テーブルのまま）ので、外部 API との通信はこの差分には入っていない。</p>
+
+  <div class="status-row">
+    <span>tests: <b class="ok">3 passed in 0.21s</b></span>
+    <span>diff: <b>6 files, +87 / -14</b></span>
+    <span>状態: <b>コミット済み（84dd1f4 → 7cdd7b2）</b></span>
+  </div>
+
+  <nav class="toc">
+    <p>読む順（依存の順そのもの — 型 → それを作る側 → それを使う側 → 配線）</p>
+    <ol>
+      <li><a href="#rounding"><code>fx/rounding.py</code></a> — 丸めの選択肢と手数料率が、ここで初めて名前を持つ</li>
+      <li><a href="#rate-client"><code>fx/rate_client.py</code></a> — レートの出どころ。キャッシュと例外が増えた</li>
+      <li><a href="#converter"><code>fx/converter.py</code></a> — 上の 2 つを束ねる。この差分の主役</li>
+      <li><a href="#money-util"><code>fx/money_util.py</code></a> — 役目を終えて消えた。探しても無い</li>
+      <li><a href="#cli"><code>fx/cli.py</code></a> — エラーを終了コードに落とす入口</li>
+    </ol>
+    <p>読まなくていいもの: <code>tests/test_converter.py</code>（新規 20 行）。丸めの既定と未対応通貨を固定しているだけなので、<strong>3 節の中で何を確かめているかだけ触れる</strong>。</p>
+  </nav>
+
+  <section class="step" id="rounding">
+    <p class="num">1 / 5 — 新規</p>
+    <h2>rounding.py <code>fx/</code></h2>
+    <p class="role">ここを飛ばすと、あとの 3 節が何を渡し合っているか読めなくなる。</p>
+    <p>これまで <code>float</code> の <code>round()</code> 1 本だったものを、<strong>呼び出し側が向きを選べる形</strong>に開いた。見どころは 3 つで、<strong>手数料率がここに移った</strong>こと、<strong>選択肢が 2 つに限られている</strong>こと、<strong>丸めが <code>Decimal.quantize</code> に委ねられている</strong>こと。</p>
+
+    <div class="diff">
+      <div class="filebar">🆕 <span class="new">new file</span> · fx/rounding.py · 19 行</div>
+      <div class="lines">
+        <div class="line add"><span class="ln">4</span><span class="txt">FEE_RATE = Decimal("0.02")</span></div>
+      </div>
+      <div class="snip">⋯ import 2 行 ⋯</div>
+      <div class="lines">
+        <div class="line add"><span class="ln">7</span><span class="txt">class Rounding(StrEnum):</span></div>
+        <div class="line add"><span class="ln">8</span><span class="txt">    CEIL = "ceil"</span></div>
+        <div class="line add"><span class="ln">9</span><span class="txt">    FLOOR = "floor"</span></div>
+      </div>
+      <div class="snip">⋯ Rounding を decimal の定数へ対応させる _MODES ⋯</div>
+      <div class="lines">
+        <div class="line add"><span class="ln">18</span><span class="txt">def apply(amount: Decimal, mode: Rounding) -&gt; int:</span></div>
+        <div class="line add"><span class="ln">19</span><span class="txt">    return int(amount.quantize(Decimal("1"), rounding=_MODES[mode]))</span></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><strong>手数料率がここに居る理由</strong>: 丸めは「手数料を乗せたあとの額」に掛かるので、2 つを同じ場所に置いた。<code>converter.py</code> 側の <code>FEE = 0.02</code> は 3 節で消える。</p>
+    </div>
+  </section>
+
+  <section class="step" id="rate-client">
+    <p class="num">2 / 5 — 変更</p>
+    <h2>rate_client.py <code>fx/</code></h2>
+    <p class="role">キャッシュの当たり判定と例外の形を押さえておくと、5 節の終了コードが素直に読める。</p>
+    <p>レートを <code>float</code> から <code>Decimal</code> に変え、<strong>10 分の有効期限つきキャッシュ</strong>と<strong>未対応通貨の例外</strong>を足した。戻り値が 1 値から <code>(レート, "hit" / "miss")</code> のタプルになっているのが、呼び出し側に効く変更。</p>
+
+    <div class="diff">
+      <div class="filebar">✏️ <span class="mod">changed</span> · fx/rate_client.py · +28 / -4</div>
+      <div class="lines">
+        <div class="line add"><span class="ln">4</span><span class="txt">TTL_SECONDS = 600</span></div>
+      </div>
+      <div class="snip">⋯ RATES の値を Decimal("155.80") 等へ ⋯</div>
+      <div class="lines">
+        <div class="line add"><span class="ln">11</span><span class="txt">_cache: dict[str, tuple[Decimal, float]] = {}</span></div>
+        <div class="line add"><span class="ln">14</span><span class="txt">class RateUnavailable(Exception):</span></div>
+        <div class="line add"><span class="ln">15</span><span class="txt">    def __init__(self, currency: str) -&gt; None:</span></div>
+        <div class="line add"><span class="ln">16</span><span class="txt">        super().__init__(currency)</span></div>
+        <div class="line add"><span class="ln">17</span><span class="txt">        self.currency = currency</span></div>
+      </div>
+      <div class="snip">⋯ ここから fetch_rate の置き換え ⋯</div>
+      <div class="lines">
+        <div class="line del"><span class="ln">7</span><span class="txt">def fetch_rate(currency: str) -&gt; float:</span></div>
+        <div class="line del"><span class="ln">8</span><span class="txt">    return RATES[currency]</span></div>
+        <div class="line add"><span class="ln">20</span><span class="txt">def fetch_rate(currency: str, now: float | None = None) -&gt; tuple[Decimal, str]:</span></div>
+        <div class="line add"><span class="ln">21</span><span class="txt">    now = time.time() if now is None else now</span></div>
+        <div class="line add"><span class="ln">22</span><span class="txt">    cached = _cache.get(currency)</span></div>
+        <div class="line add"><span class="ln">23</span><span class="txt">    if cached is not None and now - cached[1] &lt; TTL_SECONDS:</span></div>
+        <div class="line add"><span class="ln">24</span><span class="txt">        return cached[0], "hit"</span></div>
+      </div>
+      <div class="snip">⋯ 空行 1 行 ⋯</div>
+      <div class="lines">
+        <div class="line add"><span class="ln">26</span><span class="txt">    try:</span></div>
+        <div class="line add"><span class="ln">27</span><span class="txt">        rate = RATES[currency]</span></div>
+        <div class="line add"><span class="ln">28</span><span class="txt">    except KeyError:</span></div>
+        <div class="line add"><span class="ln">29</span><span class="txt">        raise RateUnavailable(currency) from None</span></div>
+        <div class="line add"><span class="ln">31</span><span class="txt">    _cache[currency] = (rate, now)</span></div>
+        <div class="line add"><span class="ln">32</span><span class="txt">    return rate, "miss"</span></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><strong><code>now</code> 引数が増えているのはテストのため</strong>: 時刻を外から渡せるので、有効期限をまたいだ挙動を待たずに確かめられる。既定は <code>None</code> で、実行時は <code>time.time()</code> を使う。</p>
+    </div>
+
+    <div class="callout watch">
+      <p><strong>キャッシュはプロセス内のモジュール変数</strong>: <code>_cache</code> はプロセスを超えて共有されず、ロックも掛かっていない。このデモの範囲では問題にならないが、複数ワーカーで動かす形に伸ばすなら最初に崩れるのはここ。</p>
+    </div>
+  </section>
+
+  <section class="step" id="converter">
+    <p class="num">3 / 5 — 変更</p>
+    <h2>converter.py <code>fx/</code></h2>
+    <p class="role">この差分の主役。ここだけ読んで帰ってもよいが、1 節の <code>Rounding</code> は先に見ておく必要がある。</p>
+    <p><code>float</code> の掛け算を <code>Decimal</code> に置き換え、<strong>丸めの向きを引数にした</strong>。既定は <code>Rounding.CEIL</code>（切り上げ）で、<strong>既定を変えると利用側の金額が 1 円変わる</strong>のが肝。<code>tests/test_converter.py</code> はこの 1 円差（4766 と 4765）と、未対応通貨で例外が飛ぶことを固定している。</p>
+
+    <div class="diff">
+      <div class="filebar">✏️ <span class="mod">changed</span> · fx/converter.py · +12 / -6</div>
+      <div class="lines">
+        <div class="line del"><span class="ln">1</span><span class="txt">from fx.money_util import round_jpy</span></div>
+        <div class="line del"><span class="ln">3</span><span class="txt">FEE = 0.02</span></div>
+        <div class="line add"><span class="ln">4</span><span class="txt">from fx.rounding import FEE_RATE, Rounding, apply</span></div>
+      </div>
+      <div class="snip">⋯ ここから to_jpy の置き換え ⋯</div>
+      <div class="lines">
+        <div class="line del"><span class="ln">7</span><span class="txt">def to_jpy(amount: float, currency: str) -&gt; int:</span></div>
+        <div class="line del"><span class="ln">8</span><span class="txt">    rate = fetch_rate(currency)</span></div>
+        <div class="line del"><span class="ln">9</span><span class="txt">    return round_jpy(amount * rate * (1 + FEE))</span></div>
+        <div class="line add"><span class="ln">7</span><span class="txt">def to_jpy(</span></div>
+        <div class="line add"><span class="ln">8</span><span class="txt">    amount: Decimal,</span></div>
+        <div class="line add"><span class="ln">9</span><span class="txt">    currency: str,</span></div>
+        <div class="line add"><span class="ln">10</span><span class="txt">    mode: Rounding = Rounding.CEIL,</span></div>
+        <div class="line add"><span class="ln">11</span><span class="txt">    now: float | None = None,</span></div>
+        <div class="line add"><span class="ln">12</span><span class="txt">) -&gt; int:</span></div>
+        <div class="line add"><span class="ln">13</span><span class="txt">    rate, _source = fetch_rate(currency, now=now)</span></div>
+        <div class="line add"><span class="ln">14</span><span class="txt">    gross = amount * rate * (Decimal("1") + FEE_RATE)</span></div>
+        <div class="line add"><span class="ln">15</span><span class="txt">    return apply(gross, mode)</span></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><strong><code>_source</code> を捨てている</strong>: <code>fetch_rate</code> が返す <code>"hit"</code> / <code>"miss"</code> は、この節では使い道が無いのでアンダースコア付きで受けて落としている。ログに出す・画面に出すといった使い方は、この差分には入っていない。</p>
+    </div>
+  </section>
+
+  <section class="step" id="money-util">
+    <p class="num">4 / 5 — 削除</p>
+    <h2>money_util.py <code>fx/</code></h2>
+    <p class="role">探しても無い。3 節を読んだ時点で用が済んでいるので、確認だけして次へ。</p>
+    <p>中身は 2 行。<code>round()</code> による四捨五入が 1 つだけあった。<strong>丸めの向きを選べるようにした結果、ここに残すものが無くなった</strong>ので削除した。</p>
+
+    <div class="diff">
+      <div class="filebar">🗑 <span class="gone">deleted</span> · fx/money_util.py · 2 行</div>
+      <div class="lines">
+        <div class="line del"><span class="ln">1</span><span class="txt">def round_jpy(amount: float) -&gt; int:</span></div>
+        <div class="line del"><span class="ln">2</span><span class="txt">    return int(round(amount))</span></div>
+      </div>
+    </div>
+
+    <div class="callout watch">
+      <p><strong>丸めの結果が変わっている</strong>: 旧 <code>round()</code> は銀行家の丸め（偶数丸め）で、新しい既定は切り上げ。29.99 USD では旧 4766・新 4766 で一致するが、<strong>小数部がちょうど 0.5 の額では食い違う</strong>。既存の請求額を再計算する用途があるなら、そこだけ別に見る必要がある。</p>
+    </div>
+  </section>
+
+  <section class="step" id="cli">
+    <p class="num">5 / 5 — 変更</p>
+    <h2>cli.py <code>fx/</code></h2>
+    <p class="role">最後に配線。2 節で足した例外が、ここで終了コードに変わる。</p>
+    <p>入力を <code>float()</code> ではなく <code>Decimal()</code> で受けるようにし、<code>RateUnavailable</code> を捕まえて<strong>標準エラーへ日本語のメッセージ、終了コード 2</strong> にした。例外クラス名や通貨コード以外の内部情報は画面に出していない。</p>
+
+    <div class="diff">
+      <div class="filebar">✏️ <span class="mod">changed</span> · fx/cli.py · +8 / -2</div>
+      <div class="lines">
+        <div class="line add"><span class="ln">5</span><span class="txt">from fx.rate_client import RateUnavailable</span></div>
+      </div>
+      <div class="snip">⋯ 空行と def main の行 ⋯</div>
+      <div class="lines">
+        <div class="line del"><span class="ln">9</span><span class="txt">    amount = float(argv[1])</span></div>
+        <div class="line add"><span class="ln">9</span><span class="txt">    amount = Decimal(argv[1])</span></div>
+        <div class="line add"><span class="ln">11</span><span class="txt">    try:</span></div>
+        <div class="line add"><span class="ln">12</span><span class="txt">        print(f"{to_jpy(amount, currency)} JPY")</span></div>
+        <div class="line add"><span class="ln">13</span><span class="txt">    except RateUnavailable as e:</span></div>
+        <div class="line add"><span class="ln">14</span><span class="txt">        print(f"取り扱いのない通貨です: {e.currency}", file=sys.stderr)</span></div>
+        <div class="line add"><span class="ln">15</span><span class="txt">        return 2</span></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p><strong>丸めの向きはコマンドから指定できない</strong>: <code>to_jpy</code> は <code>mode</code> を受け取るが、<code>cli.py</code> はそれを渡していないので常に既定の切り上げになる。オプションとして開くかどうかは、この差分では決めていない。</p>
+    </div>
+  </section>
+
+  <footer class="end">
+    <a href="../">← サンプル一覧へ戻る</a><br>
+    <code>/cozy-doc:diff-guide</code> の出力サンプル。題材は架空の為替換算デモで、実在のサービス・顧客データは含まない。<strong>数値は動く実装を 2 コミット分こしらえ、実行して取った</strong>（<code>pytest -q</code> と <code>python3 fx/cli.py 29.99 USD</code>）。スキル本体は <a href="https://github.com/little-hands/claude-code-plugins/tree/main/plugins/cozy-doc">little-hands/claude-code-plugins</a>。
+  </footer>
+
+</div>
+</body>
+</html>

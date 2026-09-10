@@ -2,6 +2,8 @@
 
 読み手を迷わせず、くつろいで読める形にするプラグイン。
 
+**出力サンプル（ブラウザで描画したもの）:** [diff-guide](https://little-hands.github.io/claude-code-plugins/cozy-doc/diff-guide.html) / [seq-values](https://little-hands.github.io/claude-code-plugins/cozy-doc/seq-values.html)
+
 ## 機能
 
 `diff-guide` と `seq-values` の 2 スキルを収録しています。どちらも、対象を**上から順に読めば理解できる形**のスタンドアロン HTML にする点は共通です。

@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="ja"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ドル価格を円で見せるまで — 図と実値</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --paper:      #f7f8fa;
+    --surface:    #ffffff;
+    --surface-2:  #eef1f5;
+    --ink:        #14181f;
+    --ink-soft:   #3d4652;
+    --muted:      #5b6472;
+    --line:       #d8dee7;
+    --accent:     #143d73;
+    --accent-ink: #ffffff;
+    --accent-dim: #e3eaf5;
+    --warn:       #b5432c;
+    --warn-dim:   #f7e9e5;
+
+    --step:  clamp(1rem, 0.9rem + 0.4vw, 1.0625rem);
+    --wrap:  min(100% - 3rem, 60rem);
+    --serif: "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", serif;
+    --sans:  "Noto Sans JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+    --mono:  "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #0f1319;
+      --surface:    #171d25;
+      --surface-2:  #1e252f;
+      --ink:        #e2e7ee;
+      --ink-soft:   #c2cad6;
+      --muted:      #8e99a9;
+      --line:       #2c343f;
+      --accent:     #8fb4ea;
+      --accent-ink: #0f1319;
+      --accent-dim: #1c2735;
+      --warn:       #e39179;
+      --warn-dim:   #2e2019;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #0f1319;
+    --surface:    #171d25;
+    --surface-2:  #1e252f;
+    --ink:        #e2e7ee;
+    --ink-soft:   #c2cad6;
+    --muted:      #8e99a9;
+    --line:       #2c343f;
+    --accent:     #8fb4ea;
+    --accent-ink: #0f1319;
+    --accent-dim: #1c2735;
+    --warn:       #e39179;
+    --warn-dim:   #2e2019;
+  }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: var(--step);
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { width: var(--wrap); margin-inline: auto; }
+
+  /* ---- header ---- */
+  header {
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+    padding-block: 3.5rem 2.75rem;
+  }
+  header .wrap { display: flex; flex-direction: column; gap: 1.25rem; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: clamp(1.85rem, 1.4rem + 1.9vw, 2.6rem);
+    line-height: 1.35;
+    text-wrap: balance;
+    margin: 0;
+  }
+  .lede { margin: 0; color: var(--ink-soft); max-width: 34em; }
+
+  .tips {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 1.25rem 1.4rem;
+    background: var(--accent-dim);
+    border-radius: 2px;
+    border-inline-start: 3px solid var(--accent);
+    list-style: none;
+    counter-reset: tip;
+  }
+  .tips li {
+    display: grid;
+    grid-template-columns: 1.6rem 1fr;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    line-height: 1.7;
+  }
+  .tips li::before {
+    counter-increment: tip;
+    content: counter(tip);
+    font-family: var(--mono);
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  /* ---- sections ---- */
+  main { padding-block: 3rem 5rem; display: flex; flex-direction: column; gap: 3.25rem; }
+  section { display: flex; flex-direction: column; gap: 1.15rem; }
+
+  h2 {
+    font-family: var(--serif);
+    font-size: 1.4rem;
+    line-height: 1.5;
+    margin: 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--line);
+    text-wrap: balance;
+  }
+  h2 .num {
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    color: var(--accent);
+    margin-inline-end: 0.6rem;
+  }
+  p { margin: 0; }
+  strong { font-weight: 700; }
+
+  .label {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  blockquote.story {
+    margin: 0;
+    padding: 1.15rem 1.4rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-inline-start: 3px solid var(--accent);
+    border-radius: 2px;
+    font-family: var(--serif);
+    font-size: 1.05rem;
+    line-height: 1.9;
+  }
+
+  .scope {
+    padding: 0.9rem 1.1rem;
+    background: var(--surface-2);
+    border-radius: 2px;
+    font-size: 0.95rem;
+  }
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.94rem; }
+  .scroll { overflow-x: auto; }
+  th, td {
+    text-align: start;
+    padding: 0.7rem 0.85rem;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+    line-height: 1.7;
+  }
+  thead th {
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 500;
+    border-bottom-color: var(--ink-soft);
+  }
+  tbody th { font-weight: 500; white-space: nowrap; color: var(--ink-soft); width: 1%; }
+  td.num, th.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  /* ---- diagram ---- */
+  .diagram {
+    /* 固定配色。mermaid は初回描画時に色を SVG へ焼き込み、テーマが
+       後から変わっても再描画しないため、var() で追従させると
+       表示中の切替で配色だけ取り残されて判読不能になる */
+    background: #ffffff;
+    border: 1px solid #d8dee7;
+    border-radius: 2px;
+    padding: 1.5rem 1rem;
+    overflow-x: auto;
+  }
+  .diagram pre { margin: 0; }
+
+  /* ---- steps ---- */
+  .steps { display: flex; flex-direction: column; gap: 2rem; margin: 0; padding: 0; }
+  .step { display: grid; grid-template-columns: 3.4rem 1fr; gap: 0 1rem; }
+  .step > .badge {
+    grid-row: 1 / -1;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border-radius: 2px;
+    min-height: 1.9rem;
+    padding-block: 0.15rem;
+    display: grid;
+    place-items: center;
+    line-height: 1.4;
+    text-align: center;
+    margin-top: 0.35rem;
+  }
+  .step.is-fail > .badge { color: var(--warn); background: var(--warn-dim); }
+  .step > .body { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
+  .step h3 { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1.7; }
+  .step h3 code { font-size: 0.95em; }
+
+  pre.code {
+    margin: 0;
+    padding: 1rem 1.1rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 0.86rem;
+    line-height: 1.75;
+    tab-size: 2;
+  }
+  pre.code .c { color: var(--muted); }
+  pre.code .k { color: var(--accent); font-weight: 500; }
+  code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    background: var(--surface-2);
+    padding: 0.1em 0.35em;
+    border-radius: 2px;
+  }
+
+  .pill {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    padding: 0.1em 0.5em;
+    border-radius: 999px;
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+  .pill.warn { background: var(--warn-dim); color: var(--warn); }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding-block: 1.75rem 3rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 34rem) {
+    .step { grid-template-columns: 1fr; gap: 0.6rem; }
+    .step > .badge { grid-row: auto; justify-self: start; padding-inline: 0.7rem; margin-top: 0; }
+  }
+</style>
+
+<style>
+  /* ---- mermaid ---- */
+  .diagram svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+  /* 描画前のソースを隠す。ただし mermaid を読めなかった場合は
+     .no-mermaid が付き、ソースをそのまま見せる（真っ白を避ける） */
+  .diagram pre.mermaid:not([data-processed]) { visibility: hidden; }
+  .no-mermaid .diagram pre.mermaid {
+    visibility: visible;
+    font-family: var(--mono);
+    font-size: 0.86rem;
+    line-height: 1.7;
+    color: var(--ink-soft);
+  }
+
+  /* ---- 左に図・右に実値（広い画面だけ） ---- */
+  /* 狭い画面では縦積みに戻す。図と実値を横に並べられる幅が無いのに
+     2 カラムにすると、どちらも読めない幅になる */
+  .split { display: flex; flex-direction: column; gap: 3.25rem; }
+  @media (min-width: 80rem) {
+    .split {
+      display: grid;
+      grid-template-columns: minmax(28rem, 42%) 1fr;
+      gap: 2.5rem;
+      align-items: start;
+      /* 広げるのはこのブロックだけ。header・0 節・footer は --wrap のまま
+         左端を揃える。散文まで 110rem で流すと 1 行 200 字近くなって読めない */
+      width: min(100vw - 3rem, 110rem);
+      margin-inline: calc((100% - min(100vw - 3rem, 110rem)) / 2);
+    }
+    .pane-diagram {
+      position: sticky;
+      top: 1rem;
+      max-height: calc(100vh - 2rem);
+      display: flex; flex-direction: column;
+    }
+    /* 見出し・説明・ズームバーは固定。スクロールするのは図の枠だけ */
+    .pane-diagram .diagram { overflow: auto; flex: 1 1 auto; min-height: 0; }
+    /* 図は縮めずに自然幅で描き、左カラムの中で左右にスクロールさせる */
+    .pane-diagram .diagram svg { max-width: none !important; }
+  }
+
+  /* ---- 図の拡大（縮小して置くぶん、拡大手段を必ず添える） ---- */
+  .diagram { cursor: zoom-in; }
+  .zoombar { display: flex; gap: 0.4rem; align-items: center; font: 500 0.8rem var(--mono); }
+  .zoombar button {
+    font: inherit;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .zoombar button:hover { background: var(--accent-dim); }
+  /* ダイアログの中も図と同じ理由で固定配色（テーマ変数を使わない） */
+  dialog.zoom {
+    width: min(96vw, 120rem);
+    max-width: none;
+    max-height: 96vh;
+    padding: 1rem;
+    border: 1px solid #d8dee7;
+    border-radius: 2px;
+    background: #ffffff;
+    overflow: auto;
+  }
+  dialog.zoom::backdrop { background: rgba(0,0,0,0.55); }
+  dialog.zoom svg { width: 100%; height: auto; }
+  dialog.zoom .close {
+    position: sticky; top: 0; float: right;
+    font: 700 0.85rem var(--mono); color: #143d73;
+    background: #e3eaf5; border: 0; border-radius: 2px; padding: 0.3rem 0.7rem; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="eyebrow">サンプル出力 · 架空の為替換算デモ</p>
+    <h1>ドル価格を円で見せるまで — 図と実値</h1>
+    <p class="lede">$29.99 の商品ページを開いてから「4766 JPY」が出るまでを、矢印ごとの実際の値で追う。値はすべて実行して取ったもので、推測で埋めた数字は無い。</p>
+    <ul class="tips">
+      <li><span>矢印に番号を振り、<strong>実値も同じ番号で並べる</strong></span></li>
+      <li><span><strong>1 本のシナリオで通す</strong>（節ごとに例を変えない）</span></li>
+      <li><span><strong>うまくいかない例を必ず入れる</strong>（ここでは取り扱いのない通貨）</span></li>
+    </ul>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2><span class="num">0</span>何のための機能か</h2>
+
+    <p class="label">ユーザーストーリー</p>
+    <blockquote class="story">
+      <strong>海外通販を使う買い物客</strong>として、<br>
+      <strong>$ 表記の商品を、今日のレートで円換算して見たい</strong>。<br>
+      <strong>カードの請求が来るまで日本円でいくらか分からない、を避けたい</strong>から。
+    </blockquote>
+
+    <p class="scope">
+      <strong>この先の図が描いているもの</strong> — 商品ページを 1 回開いて、円価格が 1 つ出るまで。カート・決済・ログインは含まない。レートの提供元との通信も含まない（固定のレート表を引く形にしてある）。
+    </p>
+
+    <p class="label">決めごと（数字の根拠は 2. で実値と一緒に見せる）</p>
+    <div class="scroll">
+      <table>
+        <tbody>
+          <tr><th>手数料</th><td>換算額に <strong>2%</strong> 乗せる。レートに掛けるのではなく、<strong>円換算したあとの額に掛ける</strong></td></tr>
+          <tr><th>丸め</th><td>既定は<strong>切り上げ</strong>（1 円未満を買い物客に有利な側へ倒さない）。呼び出し側が切り捨ても選べる</td></tr>
+          <tr><th>レートの有効期限</th><td><strong>600 秒</strong>。最後に取った時刻からの経過がこれ未満なら控えを使う</td></tr>
+          <tr><th>取り扱いのない通貨</th><td>0 円や未定義を返さず<strong>例外にする</strong>。コマンドは終了コード <strong>2</strong> で終わる</td></tr>
+          <tr><th>計算の型</th><td>すべて <code>Decimal</code>。<code>float</code> を混ぜない（丸める前の額が 2 進で表せず、境界で 1 円ずれるため）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="split">
+
+  <section class="pane-diagram">
+    <h2><span class="num">1</span>シーケンス — 何がどの順で通るか</h2>
+    <p>図には数値を入れない。<strong>流れと分岐だけ</strong>を持たせ、値は次の節に集める。両方に数字を置くと、片方だけ直したときに食い違う。</p>
+    <div class="zoombar"><button type="button" data-zoom="-">🔍−</button><span id="zoom-pct">50%</span><button type="button" data-zoom="+">🔍+</button><button type="button" data-zoom="0">リセット</button></div>
+    <div class="diagram">
+      <pre class="mermaid">
+sequenceDiagram
+    participant U as 買い物客
+    participant BE as 商品ページ
+    participant CV as 換算処理
+    participant RC as レート取得
+    participant RD as 丸め処理
+
+    U->>BE: 1. 商品ページを開く
+    BE->>CV: 2. 円価格を求める
+    CV->>RC: 3. レートを問い合わせる
+
+    alt 期限内の控えが残っている
+        RC-->>CV: 4a. 控えのレートを返す
+    else 無い / 期限切れ
+        RC->>RC: 4b. レート表を引いて控える
+        RC-->>CV: 5. 取ったレートを返す
+    else 取り扱いのない通貨
+        RC-->>CV: 4c. 扱えないことを伝える
+        CV-->>BE: 4d. そのまま上へ渡す
+        BE-->>U: 4e. 取り扱いが無い旨を出す
+    end
+
+    CV->>CV: 6. 手数料を乗せる
+    CV->>RD: 7. 丸めを頼む
+    RD-->>CV: 8. 整数の円を返す
+    CV-->>BE: 9. 円価格を返す
+    BE-->>U: 10. 円価格を表示する
+      </pre>
+    </div>
+  </section>
+
+  <section class="pane-values">
+    <h2><span class="num">2</span>矢印ごとの実値 — $29.99 の商品を開く</h2>
+    <p>図の矢印を上から順に、実際の値で追う。<strong>図で形を掴み、ここで中身を掴む。</strong></p>
+
+    <div class="steps">
+
+      <div class="step">
+        <div class="badge">1<br>2</div>
+        <div class="body">
+          <h3>円価格を求める — 何を渡すか</h3>
+          <p>買い物客が開いたのは <strong>$29.99 の商品ページ</strong>。そこから換算処理へ渡すのは<strong>金額と通貨コードだけ</strong>。丸めの向きと時刻は既定値に任せる。画面側が丸めを意識しなくて済むよう、既定を持たせてある。</p>
+          <pre class="code">to_jpy(<span class="k">Decimal("29.99")</span>, <span class="k">"USD"</span>)
+<span class="c">#   mode = Rounding.CEIL   ← 既定（切り上げ）</span>
+<span class="c">#   now  = None            ← 既定（現在時刻を使う）</span></pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="badge">3</div>
+        <div class="body">
+          <h3>レートを問い合わせる — 時刻も一緒に渡す</h3>
+          <p>時刻を引数で受けるので、期限をまたいだ挙動を待たずに確かめられる。以下は <code>1757400000.0</code>（= 基準時刻）を渡した実行。</p>
+          <pre class="code">fetch_rate(<span class="k">"USD"</span>, now=<span class="k">1_757_400_000.0</span>)</pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="badge">4b<br>5</div>
+        <div class="body">
+          <h3>控えが無いので表を引き、控える</h3>
+          <p>初回なので控えは空。レート表を引いた値を<strong>取得時刻と組で控え</strong>、どちらから来たかを示す印（<code>miss</code>）と一緒に返す。</p>
+          <pre class="code"><span class="c">#   1 回目の戻り</span>
+(<span class="k">Decimal("155.80")</span>, <span class="k">"miss"</span>)
+
+<span class="c">#   控えの中身</span>
+_cache[<span class="k">"USD"</span>] = (<span class="k">Decimal("155.80")</span>, <span class="k">1757400000.0</span>)</pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="badge">4a</div>
+        <div class="body">
+          <h3>2 回目以降は控えを使う — 切れ目は 600 秒</h3>
+          <p>同じ通貨をもう一度引いたときの分かれ目。<strong>600 秒未満なら控え、超えたら取り直し</strong>。境界は「未満」なので、ちょうど 600 秒は取り直す側に入る。</p>
+          <pre class="code"><span class="c">#   +120 秒 → 120 &lt; 600 なので控えを使う</span>
+fetch_rate(<span class="k">"USD"</span>, now=<span class="k">1_757_400_120.0</span>)
+  → (<span class="k">Decimal("155.80")</span>, <span class="k">"hit"</span>)
+
+<span class="c">#   +900 秒 → 900 ≧ 600 なので取り直す</span>
+fetch_rate(<span class="k">"USD"</span>, now=<span class="k">1_757_400_900.0</span>)
+  → (<span class="k">Decimal("155.80")</span>, <span class="k">"miss"</span>)   <span class="c">← 4b へ戻る</span></pre>
+          <p>この取り直しは<strong>失敗ではない</strong> — 控えが古くなった <span class="pill warn">stale</span> 状態を、黙って使わずに引き直しているだけ。</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="badge">6</div>
+        <div class="body">
+          <h3>手数料を乗せる — 掛ける順番が結果を決める</h3>
+          <p>先に円換算し、<strong>そのあとで 2% を掛ける</strong>。丸める前の額は小数 6 桁まで残る。ここで丸めないのが肝で、途中で丸めると 7. の向きの指定が効かなくなる。</p>
+          <pre class="code">gross = amount * rate * (Decimal("1") + FEE_RATE)
+<span class="c">#   ① 円換算     29.99 × 155.80     = 4672.4420</span>
+<span class="c">#   ② 手数料 2%  4672.4420 × 1.02   = 4765.890840</span></pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="badge">7<br>8</div>
+        <div class="body">
+          <h3>丸める — 向きの違いが 1 円として出る</h3>
+          <p>同じ <code>4765.890840</code> から、向きの指定だけで結果が分かれる。<strong>既定は切り上げ</strong>なので、画面に出るのは 4766。</p>
+          <pre class="code">apply(<span class="k">Decimal("4765.890840")</span>, Rounding.CEIL)   → <span class="k">4766</span>
+apply(<span class="k">Decimal("4765.890840")</span>, Rounding.FLOOR)  → <span class="k">4765</span></pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="badge">9<br>10</div>
+        <div class="body">
+          <h3>画面に出す — 整数の円と単位だけ</h3>
+          <p>返るのは <code>int</code> 1 つ。レートも手数料も画面には出さない。どこから来たレートか（<code>hit</code> / <code>miss</code>）も、この範囲では捨てている。</p>
+          <pre class="code">$ python3 fx/cli.py 29.99 USD
+<span class="k">4766 JPY</span>
+<span class="c">#   終了コード 0</span></pre>
+        </div>
+      </div>
+
+      <div class="step is-fail">
+        <div class="badge">4c<br>4d<br>4e</div>
+        <div class="body">
+          <h3>取り扱いのない通貨 — 0 円を返さず止める</h3>
+          <p>レート表に無い通貨は、<strong>例外にして上まで素通しする</strong>。途中で 0 円や「レート 1.0」に倒すと、買い物客には正しい値段に見えてしまう。コマンドは標準エラーへ 1 行出し、<strong>終了コード 2</strong> で終わる。</p>
+          <pre class="code">to_jpy(<span class="k">Decimal("29.99")</span>, <span class="k">"BRL"</span>)
+<span class="c">#   → RateUnavailable   currency="BRL"   args=('BRL',)</span>
+
+$ python3 fx/cli.py 29.99 BRL
+<span class="c">#   標準エラーへ:</span>
+<span class="k">取り扱いのない通貨です: BRL</span>
+<span class="c">#   終了コード 2</span></pre>
+          <p>画面に出るのは<strong>通貨コードだけ</strong>。例外クラス名・ファイルパス・レート表の中身は出していない。</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  </div>
+
+</main>
+
+<dialog class="zoom" id="zoom"><button class="close" type="button" onclick="document.getElementById('zoom').close()">閉じる (Esc)</button><div id="zoom-body"></div></dialog>
+
+<script>
+  // 図のどこかをクリックしたら原寸で開く。左カラムは縮めて置くので、
+  // 「読めないなら開く」の逃げ道を必ず用意しておく
+  document.addEventListener('click', function (ev) {
+    var d = ev.target.closest('.diagram');
+    if (!d) return;
+    var svg = d.querySelector('pre.mermaid > svg') || d.querySelector('svg');
+    if (!svg) return;
+    var body = document.getElementById('zoom-body');
+    body.innerHTML = '';
+    body.appendChild(svg.cloneNode(true));
+    document.getElementById('zoom').showModal();
+  });
+</script>
+
+<footer class="wrap"><a href="../">← サンプル一覧へ戻る</a><br>
+<code>/cozy-doc:seq-values</code> の出力サンプル。題材は架空の為替換算デモで、実在のサービス・顧客データは含まない。<strong>実値は動く実装をこしらえて実行し、その出力から取った</strong>（<code>python3 fx/cli.py</code> と中間値を出すスクリプト）。スキル本体は <a href="https://github.com/little-hands/claude-code-plugins/tree/main/plugins/cozy-doc">little-hands/claude-code-plugins</a>。</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"
+        onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+  (function () {
+    if (typeof mermaid === 'undefined') {
+      document.documentElement.classList.add('no-mermaid');
+      return;
+    }
+    // 固定パレット（意図的）。ページのライト/ダーク切替を追わない。
+    // mermaid は初回描画時にしか色を出さず、表示中のテーマ変更では
+    // 再描画されないため、CSS 変数を読むと配色だけ古いテーマ色の
+    // まま取り残されて判読不能になる（実測で確認済み）。
+    // .diagram の背景も同じ理由で白に固定してあるので、常にこの
+    // ライト基調パレットで正しく読める。
+    mermaid.initialize({
+      // 描画後に倍率を当てるため自動描画は使わず、下で run() を呼ぶ
+      startOnLoad: false,
+      securityLevel: 'strict',
+      theme: 'base',
+      fontFamily: '"Noto Sans JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif',
+      themeVariables: {
+        background: '#ffffff',
+        primaryColor: '#e3eaf5',
+        primaryTextColor: '#14181f',
+        primaryBorderColor: '#143d73',
+        lineColor: '#3d4652',
+        textColor: '#14181f',
+        actorBkg: '#e3eaf5',
+        actorBorder: '#143d73',
+        actorTextColor: '#14181f',
+        actorLineColor: '#d8dee7',
+        signalColor: '#3d4652',
+        signalTextColor: '#14181f',
+        labelBoxBkgColor: '#eef1f5',
+        labelBoxBorderColor: '#d8dee7',
+        labelTextColor: '#14181f',
+        loopTextColor: '#3d4652',
+        noteBkgColor: '#f7e9e5',
+        noteBorderColor: '#b5432c',
+        noteTextColor: '#14181f',
+        activationBkgColor: '#143d73',
+        activationBorderColor: '#143d73',
+        sequenceNumberColor: '#ffffff'
+      }
+    });
+
+    // 左カラムに収めるため既定は 50%。viewBox の実寸に対して倍率を掛ける
+    var scale = 0.5;
+    function applyScale() {
+      document.querySelectorAll(".pane-diagram .diagram > pre > svg, .pane-diagram .diagram > svg").forEach(function (svg) {
+        var vb = svg.viewBox && svg.viewBox.baseVal;
+        if (vb && vb.width) {
+          svg.style.width = Math.round(vb.width * scale) + "px";
+          svg.setAttribute("width", Math.round(vb.width * scale));
+        }
+      });
+      var pct = document.getElementById("zoom-pct");
+      if (pct) pct.textContent = Math.round(scale * 100) + "%";
+    }
+    document.addEventListener("click", function (ev) {
+      var b = ev.target.closest("[data-zoom]");
+      if (!b) return;
+      var op = b.getAttribute("data-zoom");
+      scale = op === "+" ? Math.min(3, scale * 1.25) : op === "-" ? Math.max(0.25, scale / 1.25) : 0.5;
+      applyScale();
+    });
+    mermaid.run().then(applyScale);
+  })();
+</script>
+
+</body></html>
